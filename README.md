@@ -27,12 +27,9 @@ A Python application that transcribes speech to text using OpenAI's Whisper API,
 ### Using pip
 
 ```bash
-# Install from PyPI
-pip install speech-transcriber
-
-# Or install from source
-git clone https://github.com/yourusername/speech-transcriber.git
-cd speech-transcriber
+# Install from source
+git clone https://github.com/shaabhishek/whisper-transcribe.git
+cd whisper-transcribe
 pip install -e .
 ```
 
@@ -40,8 +37,8 @@ pip install -e .
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/speech-transcriber.git
-cd speech-transcriber
+git clone https://github.com/shaabhishek/whisper-transcribe.git
+cd whisper-transcribe
 
 # Install PortAudio (required for PyAudio)
 brew install portaudio
@@ -131,8 +128,8 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ```bash
 # Clone your fork
-git clone https://github.com/yourusername/speech-transcriber.git
-cd speech-transcriber
+git clone https://github.com/shaabhishek/whisper-transcribe.git
+cd whisper-transcribe
 
 # Install development dependencies
 pip install -e ".[dev]"
