@@ -97,6 +97,86 @@ You can modify the following settings in the `config.py` file:
 | `LANGUAGE` | Language code for transcription | en |
 | `MAX_RECORDING_TIME` | Maximum recording time in seconds | 120 |
 
+### 🔊 Audio Quality Settings
+
+The following audio configuration options can be modified in `config.py` to adjust recording quality:
+
+| Setting | Description | Default | Notes |
+|---------|-------------|---------|-------|
+| `SAMPLE_RATE` | Audio sampling rate in Hz | 44100 | Higher values (e.g., 48000) can improve quality but increase file size. Whisper works best with 16000 Hz. |
+| `CHANNELS` | Number of audio channels | 1 (Mono) | Mono is recommended for speech recognition. |
+| `CHUNK_SIZE` | Frames per buffer | 1024 | Lower values reduce latency but may cause performance issues. Typical values: 512, 1024, 2048. |
+| `FORMAT` | Audio format | wav | WAV format provides lossless quality for transcription. |
+
+#### Optimizing Audio for Transcription
+
+For the best transcription results, consider these audio optimization tips:
+
+1. **Sample Rate Considerations**: 
+   - While the default is 44100 Hz (CD quality), Whisper models were trained on 16000 Hz audio
+   - Setting `SAMPLE_RATE = 16000` may improve transcription accuracy
+   - Higher sample rates provide more detail but increase file size and processing time
+
+2. **Background Noise Reduction**:
+   - Record in a quiet environment when possible
+   - Position the microphone closer to the speaker
+   - Consider using a directional microphone for noisy environments
+
+3. **Speech Clarity**:
+   - Speak at a moderate pace with clear articulation
+   - Avoid overlapping speech when possible
+   - Maintain consistent volume throughout recording
+
+4. **Hardware Recommendations**:
+   - External microphones typically provide better quality than built-in laptop/device microphones
+   - USB condenser microphones are good affordable options for clear speech capture
+   - Headset microphones can help maintain consistent distance from the sound source
+
+### 🔍 Whisper API Features
+
+OpenAI's Whisper API offers several configuration options that affect transcription quality and behavior:
+
+| Setting | Description | Default | Available Options |
+|---------|-------------|---------|-------------------|
+| `WHISPER_MODEL` | Whisper model to use | whisper-1 | • `whisper-1`: Standard API model<br>• OpenAI also offers more advanced models like the `large-v3` which may be accessible through their API |
+| `LANGUAGE` | Language code for transcription | en | Any [ISO 639-1 language code](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes) (e.g., 'en', 'fr', 'de', 'es', 'ja'). Leave empty for auto-detection. |
+
+#### Whisper Model Options
+
+While the default `whisper-1` model is used in this application, OpenAI has released several versions of the Whisper model with different capabilities:
+
+| Model Size | Parameters | Description |
+|------------|------------|-------------|
+| tiny       | 39M        | Fastest, lowest accuracy |
+| base       | 74M        | Fast with reasonable accuracy |
+| small      | 244M       | Good balance between speed and accuracy |
+| medium     | 769M       | High accuracy but slower |
+| large-v2   | 1550M      | Highest accuracy (previous version) |
+| large-v3   | 1550M      | Latest version with improved accuracy |
+
+Note: The OpenAI API may not expose all these model variations directly. The application currently uses the API-provided `whisper-1` model.
+
+#### Language Codes
+
+Setting the `LANGUAGE` parameter can significantly improve transcription accuracy for non-English speech. Common language codes:
+
+| Language | Code |
+|----------|------|
+| English | en |
+| Spanish | es |
+| French | fr |
+| German | de |
+| Italian | it |
+| Japanese | ja |
+| Mandarin | zh |
+| Hindi | hi |
+
+#### Performance Considerations
+
+- **Audio Quality vs. File Size**: Higher sample rates provide better audio quality but generate larger files.
+- **Model Selection**: The standard `whisper-1` model works well for most use cases, while the `large` model provides higher accuracy at a higher cost.
+- **Language Specification**: Specifying the language can improve accuracy significantly compared to auto-detection.
+
 ## 🧪 Testing
 
 The application includes a comprehensive test suite that covers all core components:
