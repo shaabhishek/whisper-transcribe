@@ -95,7 +95,7 @@ You can modify the following settings in the `config.py` file:
 | `ACTIVATION_KEYS` | Key combination to activate recording | Command + Shift + ' |
 | `WHISPER_MODEL` | OpenAI Whisper model to use | whisper-1 |
 | `LANGUAGE` | Language code for transcription | en |
-| `MAX_RECORDING_TIME` | Maximum recording time in seconds | 60 |
+| `MAX_RECORDING_TIME` | Maximum recording time in seconds | 120 |
 
 ## 🧪 Testing
 

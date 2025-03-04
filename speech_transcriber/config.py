@@ -14,7 +14,7 @@ SAMPLE_RATE = 44100  # Hz
 CHANNELS = 1  # Mono
 CHUNK_SIZE = 1024  # Frames per buffer
 FORMAT = "wav"  # Audio format
-MAX_RECORDING_TIME = 60  # Maximum recording time in seconds
+MAX_RECORDING_TIME = 120  # Maximum recording time in seconds
 
 # Keyboard Shortcut Configuration
 # Default: Command + Shift + ' (apostrophe)
