@@ -14,7 +14,7 @@ SAMPLE_RATE = 16000  # Hz (default rate for Whisper models)
 CHANNELS = 1  # Mono
 CHUNK_SIZE = 1024  # Frames per buffer
 FORMAT = "wav"  # Audio format
-MAX_RECORDING_TIME = 120  # Maximum recording time in seconds
+MAX_RECORDING_TIME = 600  # Maximum recording time in seconds
 
 # Keyboard Shortcut Configuration
 # Default: Command + Shift + ' (apostrophe)

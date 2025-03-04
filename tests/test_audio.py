@@ -135,18 +135,7 @@ class TestAudioRecorder(unittest.TestCase):
         # Set up the recorder state
         self.recorder.is_recording = True
         self.recorder.frames = []
-
-        # Save original method to restore later
-        original_stop_recording = self.recorder.stop_recording
-
-        # Create a mock for stop_recording that also turns off is_recording flag
-        # to break out of the recording loop
-        def mock_stop():
-            self.recorder.is_recording = False
-            return "", 0.0
-
-        mock_stop_recording = MagicMock(side_effect=mock_stop)
-        self.recorder.stop_recording = mock_stop_recording
+        self.recorder._max_time_reached = False
 
         # Patch time.time to simulate elapsed time exceeding MAX_RECORDING_TIME
         with patch("time.time") as mock_time:
@@ -158,11 +147,9 @@ class TestAudioRecorder(unittest.TestCase):
             # The loop should break after the first iteration due to our time mock
             self.recorder._record()
 
-            # Verify stop_recording was called once
-            self.recorder.stop_recording.assert_called_once()
-
-        # Restore the original method
-        self.recorder.stop_recording = original_stop_recording
+            # Verify that recording was stopped and max time flag was set
+            self.assertFalse(self.recorder.is_recording)
+            self.assertTrue(self.recorder._max_time_reached)
 
     @patch("wave.open")
     def test_stop_recording(self, mock_wave_open):

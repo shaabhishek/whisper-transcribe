@@ -29,6 +29,9 @@ class AudioRecorder:
         self.is_recording = False
         self.recording_thread = None
         self.temp_file = None
+        self._max_time_reached = (
+            False  # Flag to track if max recording time was reached
+        )
 
     def start_recording(self) -> None:
         """Start recording audio from the microphone."""
@@ -37,6 +40,7 @@ class AudioRecorder:
 
         self.frames = []
         self.is_recording = True
+        self._max_time_reached = False  # Reset the flag
 
         # Create a temporary file for the recording
         self.temp_file = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
@@ -60,7 +64,11 @@ class AudioRecorder:
 
         while self.is_recording:
             if time.time() - start_time > MAX_RECORDING_TIME:
-                self.stop_recording()
+                # Just set the flag and break the loop instead of calling stop_recording
+                # This avoids the thread trying to join itself
+                self.is_recording = False
+                # Signal that max time was reached (will be handled in stop_recording)
+                self._max_time_reached = True
                 break
 
             data = self.stream.read(CHUNK_SIZE, exception_on_overflow=False)
@@ -73,8 +81,17 @@ class AudioRecorder:
 
         self.is_recording = False
 
-        # Wait for the recording thread to finish
-        if self.recording_thread and self.recording_thread.is_alive():
+        # Check if this was called from the recording thread (auto-stop case)
+        called_from_recording_thread = (
+            threading.current_thread() is self.recording_thread
+        )
+
+        # Wait for the recording thread to finish, but only if not called from the recording thread
+        if (
+            self.recording_thread
+            and self.recording_thread.is_alive()
+            and not called_from_recording_thread
+        ):
             self.recording_thread.join()
 
         # Stop and close the audio stream
