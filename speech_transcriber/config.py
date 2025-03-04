@@ -10,7 +10,7 @@ from pynput.keyboard import Key, KeyCode
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
 
 # Audio Recording Configuration
-SAMPLE_RATE = 44100  # Hz
+SAMPLE_RATE = 16000  # Hz (default rate for Whisper models)
 CHANNELS = 1  # Mono
 CHUNK_SIZE = 1024  # Frames per buffer
 FORMAT = "wav"  # Audio format

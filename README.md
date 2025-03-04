@@ -103,9 +103,9 @@ The following audio configuration options can be modified in `config.py` to adju
 
 | Setting | Description | Default | Notes |
 |---------|-------------|---------|-------|
-| `SAMPLE_RATE` | Audio sampling rate in Hz | 44100 | Higher values (e.g., 48000) can improve quality but increase file size. Whisper works best with 16000 Hz. |
-| `CHANNELS` | Number of audio channels | 1 (Mono) | Mono is recommended for speech recognition. |
-| `CHUNK_SIZE` | Frames per buffer | 1024 | Lower values reduce latency but may cause performance issues. Typical values: 512, 1024, 2048. |
+| `SAMPLE_RATE` | Audio sampling rate in Hz | 16000 | Matched to Whisper's training data[¹](#references). Higher values (e.g., 44100, 48000) can provide more audio detail but increase file size. |
+| `CHANNELS` | Number of audio channels | 1 (Mono) | Mono is recommended for speech recognition[²](#references). |
+| `CHUNK_SIZE` | Frames per buffer | 1024 | Lower values reduce latency but may cause performance issues. Typical values: 512, 1024, 2048[³](#references). |
 | `FORMAT` | Audio format | wav | WAV format provides lossless quality for transcription. |
 
 #### Optimizing Audio for Transcription
@@ -113,21 +113,21 @@ The following audio configuration options can be modified in `config.py` to adju
 For the best transcription results, consider these audio optimization tips:
 
 1. **Sample Rate Considerations**: 
-   - While the default is 44100 Hz (CD quality), Whisper models were trained on 16000 Hz audio
-   - Setting `SAMPLE_RATE = 16000` may improve transcription accuracy
-   - Higher sample rates provide more detail but increase file size and processing time
+   - The default is 16000 Hz (Whisper's optimal rate)[¹](#references)
+   - Higher sample rates (e.g., 44100 Hz - CD quality) provide more detail but increase file size and processing time
+   - Whisper models were trained on 16000 Hz audio, so this rate is optimal for accuracy
 
-2. **Background Noise Reduction**:
+2. **Background Noise Reduction**[⁸](#references):
    - Record in a quiet environment when possible
    - Position the microphone closer to the speaker
    - Consider using a directional microphone for noisy environments
 
-3. **Speech Clarity**:
+3. **Speech Clarity**[⁹](#references):
    - Speak at a moderate pace with clear articulation
    - Avoid overlapping speech when possible
    - Maintain consistent volume throughout recording
 
-4. **Hardware Recommendations**:
+4. **Hardware Recommendations**[¹⁰](#references):
    - External microphones typically provide better quality than built-in laptop/device microphones
    - USB condenser microphones are good affordable options for clear speech capture
    - Headset microphones can help maintain consistent distance from the sound source
@@ -138,12 +138,12 @@ OpenAI's Whisper API offers several configuration options that affect transcript
 
 | Setting | Description | Default | Available Options |
 |---------|-------------|---------|-------------------|
-| `WHISPER_MODEL` | Whisper model to use | whisper-1 | • `whisper-1`: Standard API model<br>• OpenAI also offers more advanced models like the `large-v3` which may be accessible through their API |
-| `LANGUAGE` | Language code for transcription | en | Any [ISO 639-1 language code](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes) (e.g., 'en', 'fr', 'de', 'es', 'ja'). Leave empty for auto-detection. |
+| `WHISPER_MODEL` | Whisper model to use | whisper-1 | • `whisper-1`: Standard API model<br>• OpenAI also offers more advanced models like the `large-v3` which may be accessible through their API[⁴](#references) |
+| `LANGUAGE` | Language code for transcription | en | Any [ISO 639-1 language code](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes) (e.g., 'en', 'fr', 'de', 'es', 'ja'). Leave empty for auto-detection[⁵](#references). |
 
 #### Whisper Model Options
 
-While the default `whisper-1` model is used in this application, OpenAI has released several versions of the Whisper model with different capabilities:
+While the default `whisper-1` model is used in this application, OpenAI has released several versions of the Whisper model with different capabilities[⁴](#references):
 
 | Model Size | Parameters | Description |
 |------------|------------|-------------|
@@ -158,7 +158,7 @@ Note: The OpenAI API may not expose all these model variations directly. The app
 
 #### Language Codes
 
-Setting the `LANGUAGE` parameter can significantly improve transcription accuracy for non-English speech. Common language codes:
+Setting the `LANGUAGE` parameter can significantly improve transcription accuracy for non-English speech[⁵](#references). Common language codes:
 
 | Language | Code |
 |----------|------|
@@ -173,9 +173,9 @@ Setting the `LANGUAGE` parameter can significantly improve transcription accurac
 
 #### Performance Considerations
 
-- **Audio Quality vs. File Size**: Higher sample rates provide better audio quality but generate larger files.
-- **Model Selection**: The standard `whisper-1` model works well for most use cases, while the `large` model provides higher accuracy at a higher cost.
-- **Language Specification**: Specifying the language can improve accuracy significantly compared to auto-detection.
+- **Audio Quality vs. File Size**: Higher sample rates provide better audio quality but generate larger files[⁶](#references).
+- **Model Selection**: The standard `whisper-1` model works well for most use cases, while the larger models provide higher accuracy at a higher cost[⁴](#references).
+- **Language Specification**: Specifying the language can improve accuracy significantly compared to auto-detection, especially for non-English languages[⁷](#references).
 
 ## 🧪 Testing
 
@@ -235,3 +235,16 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [ ] Configurable settings via command-line arguments
 - [ ] Support for additional transcription services
 - [ ] Custom language model fine-tuning 
+
+## References
+
+1. <a name="references"></a> OpenAI Whisper GitHub: [Audio Preprocessing](https://github.com/openai/whisper/blob/main/whisper/audio.py#L22) - The official Whisper implementation uses 16000 Hz for audio processing.
+2. PyAudio Documentation: [Channel Configuration](https://people.csail.mit.edu/hubert/pyaudio/docs/#pyaudio.Stream) - PyAudio stream configuration for audio channels.
+3. PyAudio Documentation: [Chunk Size Parameters](https://people.csail.mit.edu/hubert/pyaudio/docs/#pyaudio.Stream) - PyAudio documentation for frame buffer sizes.
+4. OpenAI Whisper GitHub: [Model Card](https://github.com/openai/whisper/blob/main/model-card.md) - Official documentation of Whisper models and their parameters.
+5. OpenAI API Documentation: [Speech to Text](https://platform.openai.com/docs/guides/speech-to-text) - Official OpenAI API documentation for Whisper transcription.
+6. OpenAI Research: [Robust Speech Recognition via Large-Scale Weak Supervision](https://cdn.openai.com/papers/whisper.pdf) - Research paper describing Whisper's development and audio processing.
+7. OpenAI GitHub: [Whisper Performance and Limitations](https://github.com/openai/whisper/blob/main/model-card.md#performance-and-limitations) - Official notes on language-specific performance.
+8. Microsoft Research: [Automatic Speech Recognition - Best Practices](https://www.microsoft.com/en-us/research/publication/automatic-speech-recognition-on-mobile-devices-and-over-communication-networks/) - Research on ASR performance in varying noise conditions.
+9. Google Cloud Documentation: [Speech-to-Text Best Practices](https://cloud.google.com/speech-to-text/docs/best-practices) - Recommendations for speech recognition clarity.
+10. Audio Engineering Society: [Microphone Selection Guide](https://www.aes.org/e-lib/browse.cfm?elib=15814) - Professional recommendations for speech recording equipment. 
