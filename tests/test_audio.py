@@ -4,7 +4,6 @@ Tests for the audio recorder module.
 
 import os
 import tempfile
-import time
 import unittest
 from unittest.mock import MagicMock, call, patch
 
@@ -137,22 +136,33 @@ class TestAudioRecorder(unittest.TestCase):
         self.recorder.is_recording = True
         self.recorder.frames = []
 
-        # Mock the stop_recording method
-        self.recorder.stop_recording = MagicMock()
+        # Save original method to restore later
+        original_stop_recording = self.recorder.stop_recording
 
-        # Directly test the MAX_RECORDING_TIME check in the _record method
-        # Simulate the condition where time.time() - start_time > MAX_RECORDING_TIME
+        # Create a mock for stop_recording that also turns off is_recording flag
+        # to break out of the recording loop
+        def mock_stop():
+            self.recorder.is_recording = False
+            return "", 0.0
+
+        mock_stop_recording = MagicMock(side_effect=mock_stop)
+        self.recorder.stop_recording = mock_stop_recording
+
+        # Patch time.time to simulate elapsed time exceeding MAX_RECORDING_TIME
         with patch("time.time") as mock_time:
-            # First call is for start_time, second is for the check
-            mock_time.side_effect = [0, 61]  # 61 seconds > MAX_RECORDING_TIME (60)
+            # First call in _record for start_time, next calls for the time check
+            # Make sure we exceed MAX_RECORDING_TIME on the second check
+            mock_time.side_effect = [0, MAX_RECORDING_TIME + 1]
 
-            # Call the first part of the _record method manually
-            start_time = time.time()
-            if time.time() - start_time > MAX_RECORDING_TIME:
-                self.recorder.stop_recording()
+            # Run the _record method which contains the loop
+            # The loop should break after the first iteration due to our time mock
+            self.recorder._record()
 
-        # Verify that stop_recording was called
-        self.recorder.stop_recording.assert_called_once()
+            # Verify stop_recording was called once
+            self.recorder.stop_recording.assert_called_once()
+
+        # Restore the original method
+        self.recorder.stop_recording = original_stop_recording
 
     @patch("wave.open")
     def test_stop_recording(self, mock_wave_open):
