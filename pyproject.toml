@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "speech-transcriber"
+version = "0.1.0"
+description = "A speech-to-text transcription tool activated by keypress"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+authors = [
+  {name = "User", email = "user@example.com"}
+]
+dependencies = [
+  "pynput>=1.7.6",
+  "pyaudio>=0.2.13",
+  "openai>=1.3.0",
+  "pyperclip>=1.8.2",
+]
+
+[tool.setuptools]
+packages = ["speech_transcriber"] 
