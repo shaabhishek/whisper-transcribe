@@ -3,24 +3,26 @@ Transcription functionality using various API services.
 """
 
 import base64
-import os
 from abc import ABC, abstractmethod
 from typing import Optional
 
 from openai import OpenAI
 
-from speech_transcriber.config import (
-    GEMINI_API_KEY,
-    GEMINI_MODEL,
-    LANGUAGE,
-    OPENAI_API_KEY,
-    TRANSCRIPTION_SERVICE,
-    WHISPER_MODEL,
-)
+from speech_transcriber.transcription_config import TranscriptionConfig
+from speech_transcriber.utils import Logger, report_file_size
 
 
 class BaseTranscriber(ABC):
     """Base class for transcription services."""
+
+    def __init__(self, config: Optional[TranscriptionConfig] = None):
+        """
+        Initialize the transcriber with configuration.
+
+        Args:
+            config: Configuration object. If None, config will be loaded from environment.
+        """
+        self.config = config or TranscriptionConfig.from_env()
 
     @abstractmethod
     def transcribe(self, audio_file_path: str) -> Optional[str]:
@@ -39,9 +41,21 @@ class BaseTranscriber(ABC):
 class OpenAITranscriber(BaseTranscriber):
     """Transcribes audio files using OpenAI's Whisper API."""
 
-    def __init__(self):
+    def __init__(self, config: Optional[TranscriptionConfig] = None):
+        """
+        Initialize the OpenAI transcriber.
+
+        Args:
+            config: Configuration object. If None, config will be loaded from environment.
+        """
+        super().__init__(config)
+
         # Initialize the OpenAI client
-        self.client = OpenAI(api_key=OPENAI_API_KEY)
+        if not self.config.openai_api_key:
+            Logger.error("OpenAI API key is not set")
+            raise ValueError("OpenAI API key is not set")
+
+        self.client = OpenAI(api_key=self.config.openai_api_key)
 
     def transcribe(self, audio_file_path: str) -> Optional[str]:
         """
@@ -53,66 +67,71 @@ class OpenAITranscriber(BaseTranscriber):
         Returns:
             The transcribed text, or None if transcription failed
         """
-        if not os.path.exists(audio_file_path):
-            print(f"Error: Audio file not found at {audio_file_path}")
+        # Check if the file exists
+        file_info = TranscriptionConfig.get_file_info(audio_file_path)
+        if file_info is None:
+            Logger.error(f"Audio file not found at {audio_file_path}")
             return None
 
-        # Get and print the file size
-        file_size_bytes = os.path.getsize(audio_file_path)
-        file_size_kb = file_size_bytes / 1024
-        file_size_mb = file_size_kb / 1024
-
-        if file_size_mb >= 1:
-            print(f"Uploading audio file ({file_size_mb:.2f} MB) to Whisper API...")
-        else:
-            print(f"Uploading audio file ({file_size_kb:.2f} KB) to Whisper API...")
+        # Get file size and log it
+        file_size_bytes, _, _ = file_info
+        report_file_size(file_size_bytes, "Whisper API")
 
         try:
             with open(audio_file_path, "rb") as audio_file:
                 # Prepare the request parameters
                 params = {
-                    "model": WHISPER_MODEL,
+                    "model": self.config.whisper_model,
                     "file": audio_file,
                 }
 
                 # Add language if specified
-                if LANGUAGE:
-                    params["language"] = LANGUAGE
+                if self.config.language:
+                    params["language"] = self.config.language
 
-                # Make the API request using the new client format
+                # Make the API request using the client format
                 response = self.client.audio.transcriptions.create(**params)
 
                 # Extract and return the transcribed text
                 return response.text
 
         except Exception as e:
-            print(f"Error during OpenAI transcription: {e}")
+            Logger.error("Error during OpenAI transcription", e)
             return None
 
 
 class GeminiTranscriber(BaseTranscriber):
     """Transcribes audio files using Google's Gemini API."""
 
-    def __init__(self):
+    def __init__(self, config: Optional[TranscriptionConfig] = None):
+        """
+        Initialize the Gemini transcriber.
+
+        Args:
+            config: Configuration object. If None, config will be loaded from environment.
+        """
+        super().__init__(config)
+
         try:
             import google.generativeai as genai
 
             self.genai = genai
 
             # Configure the Gemini client with the API key
-            if not GEMINI_API_KEY:
+            if not self.config.gemini_api_key:
                 raise ValueError("GEMINI_API_KEY is not set")
 
-            self.genai.configure(api_key=GEMINI_API_KEY)
-            self.model = GEMINI_MODEL
-            print(f"Initialized Gemini transcriber with model: {self.model}")
+            self.genai.configure(api_key=self.config.gemini_api_key)
+            self.model = self.config.gemini_model
+            Logger.info(f"Initialized Gemini transcriber with model: {self.model}")
+
         except ImportError:
-            print(
-                "Error: google-generativeai library not installed. Please install it with: pip install google-generativeai"
+            Logger.error(
+                "google-generativeai library not installed. Please install it with: pip install google-generativeai"
             )
             raise
         except ValueError as e:
-            print(f"Error initializing Gemini transcriber: {e}")
+            Logger.error(f"Error initializing Gemini transcriber: {e}")
             raise
 
     def transcribe(self, audio_file_path: str) -> Optional[str]:
@@ -125,19 +144,15 @@ class GeminiTranscriber(BaseTranscriber):
         Returns:
             The transcribed text, or None if transcription failed
         """
-        if not os.path.exists(audio_file_path):
-            print(f"Error: Audio file not found at {audio_file_path}")
+        # Check if the file exists
+        file_info = TranscriptionConfig.get_file_info(audio_file_path)
+        if file_info is None:
+            Logger.error(f"Audio file not found at {audio_file_path}")
             return None
 
-        # Get and print the file size
-        file_size_bytes = os.path.getsize(audio_file_path)
-        file_size_kb = file_size_bytes / 1024
-        file_size_mb = file_size_kb / 1024
-
-        if file_size_mb >= 1:
-            print(f"Uploading audio file ({file_size_mb:.2f} MB) to Gemini API...")
-        else:
-            print(f"Uploading audio file ({file_size_kb:.2f} KB) to Gemini API...")
+        # Get file size and log it
+        file_size_bytes, _, _ = file_info
+        report_file_size(file_size_bytes, "Gemini API")
 
         try:
             # Read the audio file
@@ -145,23 +160,15 @@ class GeminiTranscriber(BaseTranscriber):
                 audio_data = audio_file.read()
 
             # Determine the MIME type based on the file extension
-            mime_type = "audio/wav"  # Default to WAV
-            if audio_file_path.lower().endswith(".mp3"):
-                mime_type = "audio/mp3"
-            elif audio_file_path.lower().endswith(".aac"):
-                mime_type = "audio/aac"
-            elif audio_file_path.lower().endswith(".ogg"):
-                mime_type = "audio/ogg"
-            elif audio_file_path.lower().endswith(".flac"):
-                mime_type = "audio/flac"
-            elif audio_file_path.lower().endswith(".aiff"):
-                mime_type = "audio/aiff"
+            mime_type = TranscriptionConfig.get_mime_type(audio_file_path)
 
             # Get a generative model
             model = self.genai.GenerativeModel(self.model)
 
             # Create a clear transcription prompt
-            language_part = f" in {LANGUAGE}" if LANGUAGE else ""
+            language_part = (
+                f" in {self.config.language}" if self.config.language else ""
+            )
             prompt = (
                 f"Please transcribe the following audio file accurately{language_part}. "
                 f"Provide only the transcribed text without any explanations or additional commentary."
@@ -198,31 +205,50 @@ class GeminiTranscriber(BaseTranscriber):
             if hasattr(response, "text"):
                 return response.text.strip()
 
-            print("Warning: Unexpected response format from Gemini API")
+            Logger.warn("Unexpected response format from Gemini API")
             return None
 
         except Exception as e:
-            print(f"Error during Gemini transcription: {e}")
+            Logger.error("Error during Gemini transcription", e)
             return None
 
 
 class Transcriber:
     """Factory class that provides the appropriate transcription service."""
 
-    def __init__(self):
+    def __init__(
+        self,
+        config: Optional[TranscriptionConfig] = None,
+        service: Optional[str] = None,
+    ):
+        """
+        Initialize the transcriber with the appropriate service.
+
+        Args:
+            config: Configuration object. If None, config will be loaded from environment.
+            service: Transcription service to use. Overrides config.transcription_service if provided.
+        """
+        self.config = config or TranscriptionConfig.from_env()
+
+        # Override the service if provided
+        if service:
+            self.config.transcription_service = service.lower()
+
         # Select the appropriate transcriber based on configuration
-        if TRANSCRIPTION_SERVICE == "gemini" and GEMINI_API_KEY:
-            self.transcriber = GeminiTranscriber()
-            print("Using Gemini API for transcription")
-        elif TRANSCRIPTION_SERVICE == "openai" and OPENAI_API_KEY:
-            self.transcriber = OpenAITranscriber()
-            print("Using OpenAI Whisper API for transcription")
+        if self.config.transcription_service == "gemini" and self.config.gemini_api_key:
+            self.transcriber = GeminiTranscriber(self.config)
+            Logger.info("Using Gemini API for transcription")
+        elif (
+            self.config.transcription_service == "openai" and self.config.openai_api_key
+        ):
+            self.transcriber = OpenAITranscriber(self.config)
+            Logger.info("Using OpenAI Whisper API for transcription")
         else:
             # Default to OpenAI if no valid configuration is found
-            print(
-                f"Warning: Invalid transcription service '{TRANSCRIPTION_SERVICE}' or missing API key. Defaulting to OpenAI."
+            Logger.warn(
+                f"Invalid transcription service '{self.config.transcription_service}' or missing API key. Defaulting to OpenAI."
             )
-            self.transcriber = OpenAITranscriber()
+            self.transcriber = OpenAITranscriber(self.config)
 
     def transcribe(self, audio_file_path: str) -> Optional[str]:
         """

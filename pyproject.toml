@@ -7,7 +7,7 @@ name = "speech-transcriber"
 version = "0.1.0"
 description = "A speech-to-text transcription tool activated by keypress"
 readme = "README.md"
-requires-python = ">=3.8.1"
+requires-python = ">=3.10"
 license = {text = "MIT"}
 authors = [
   {name = "User", email = "user@example.com"}
@@ -35,3 +35,50 @@ speech-transcriber = "speech_transcriber.__main__:main"
 
 [tool.setuptools]
 packages = ["speech_transcriber"] 
+
+[tool.ruff]
+
+# Assume Python 3.10 is the target version
+target-version = "py310"
+
+# Same as Black.
+line-length = 80
+indent-width = 2
+
+[tool.ruff.format]
+# Prefer single quotes over double quotes.
+quote-style = "single"
+
+
+[tool.ruff.lint]
+# Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`)  codes by default.
+# Unlike Flake8, Ruff doesn't enable pycodestyle warnings (`W`) or
+# McCabe complexity (`C901`) by default.
+select = ["D", "D417", "E", "F"]
+
+# D104: Missing docstring in public package
+ignore = ["D104"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"  # Accepts: "google", "numpy", or "pep257".
+
+
+[tool.ruff.lint.flake8-quotes]
+inline-quotes = "single"
+multiline-quotes = "single"
+
+[tool.ruff.lint.flake8-import-conventions.aliases]
+# Declare the default aliases.
+altair = "alt"
+"matplotlib.pyplot" = "plt"
+numpy = "np"
+pandas = "pd"
+seaborn = "sns"
+scipy = "sp"
+stable_baselines3 = "sb3"
+
+[tool.ruff.lint.isort]
+# Sort imports
+from-first = true
+force-single-line = true
+force-sort-within-sections = true
