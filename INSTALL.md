@@ -107,10 +107,10 @@ python -m speech_transcriber
 
 ### Using the application
 
-1. The application will run in the background, waiting for the activation key combination.
-2. Press **Command + Shift + '** to start recording.
+1. The application will run in the background, waiting for the activation keypress.
+2. **Double-press** either the left or right **Alt key** to start recording.
 3. Speak clearly into your microphone.
-4. Press **Command + Shift + '** again to stop recording and start transcription.
+4. **Double-press** either **Alt key** again to stop recording and start transcription.
 5. The transcribed text will be automatically copied to your clipboard.
 6. Paste the text into any text field using Cmd+V.
 7. Audio notifications will play when recording starts and stops.
@@ -119,7 +119,7 @@ python -m speech_transcriber
 
 You can customize the application by modifying the `config.py` file:
 
-- Change the activation key combination
+- Adjust the double-press interval (default: 0.5 seconds)
 - Adjust audio recording parameters
 - Change the Whisper API model
 - Enable/disable notifications

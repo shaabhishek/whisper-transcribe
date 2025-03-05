@@ -5,8 +5,6 @@ Configuration settings for the Speech Transcriber application.
 import os
 from pathlib import Path
 
-from pynput.keyboard import Key, KeyCode
-
 # Try to load environment variables from .env file
 try:
     from dotenv import load_dotenv
@@ -33,17 +31,15 @@ CHUNK_SIZE = 1024  # Frames per buffer
 FORMAT = "wav"  # Audio format
 MAX_RECORDING_TIME = 600  # Maximum recording time in seconds
 
-# Keyboard Shortcut Configuration
-# Default: Command + Shift + ' (apostrophe)
-ACTIVATION_KEYS = {
-    "modifier1": Key.cmd,
-    "modifier2": Key.shift,
-    "main_key": KeyCode.from_char("'"),
-}
-
 # Whisper API Configuration
 WHISPER_MODEL = "whisper-1"
 LANGUAGE = os.environ.get("LANGUAGE", "en")  # Language code (optional)
 
 # UI Configuration
 NOTIFICATION_ENABLED = True  # Show notifications during recording/transcription
+
+# Output settings
+OUTPUT_DIR = Path(__file__).parent.parent / "transcripts"
+
+# Ensure output directory exists
+OUTPUT_DIR.mkdir(exist_ok=True)

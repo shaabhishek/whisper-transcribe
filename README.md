@@ -85,9 +85,9 @@ You can set up your OpenAI API key in several ways:
    # Or if installed with -e:
    python -m speech_transcriber
    ```
-2. Press the configured key combination (default: Command + Shift + ') to start recording
+2. **Double-press either left or right Alt key** to start recording
 3. Speak clearly into your microphone
-4. Press the same key combination again to stop recording and start transcription
+4. **Double-press either Alt key again** to stop recording and start transcription
 5. The transcribed text will be automatically pasted into the active text field
 
 ## 🔒 macOS Permissions
@@ -107,7 +107,7 @@ You can modify the following settings in the `config.py` file:
 
 | Setting | Description | Default |
 |---------|-------------|---------|
-| `ACTIVATION_KEYS` | Key combination to activate recording | Command + Shift + ' |
+| `DOUBLE_PRESS_INTERVAL` | Maximum time between Alt key presses to detect as double-press (seconds) | 0.5 |
 | `WHISPER_MODEL` | OpenAI Whisper model to use | whisper-1 |
 | `LANGUAGE` | Language code for transcription | en |
 | `MAX_RECORDING_TIME` | Maximum recording time in seconds | 120 |

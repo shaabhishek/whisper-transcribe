@@ -45,8 +45,8 @@ class SpeechTranscriber:
         self.keyboard_listener.start()
 
         print("Speech Transcriber is running.")
-        print("Press Command + Shift + ' to start recording.")
-        print("Press Command + Shift + ' again to stop recording and transcribe.")
+        print("Double-press either the left or right Alt key to start recording.")
+        print("Double-press either Alt key again to stop recording and transcribe.")
         print("Press Ctrl+C to exit.")
 
         # Keep the main thread alive
