@@ -365,6 +365,11 @@ class TestSpeechTranscriber(unittest.TestCase):
     # Verify that the transcriber was initialized with the correct service
     mock_transcriber.assert_called_once_with(service='gemini')
 
+    # Verify that app components were set correctly
+    self.assertEqual(app.audio_recorder, mock_audio_recorder_instance)
+    self.assertEqual(app.transcriber, mock_transcriber_instance)
+    self.assertEqual(app.keyboard_listener, mock_keyboard_listener_instance)
+
 
 if __name__ == '__main__':
   unittest.main()
