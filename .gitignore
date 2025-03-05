@@ -35,4 +35,8 @@ coverage.xml
 
 # Audio recordings (in case of test files)
 *.wav
-*.mp3 
+*.mp3
+
+# Environment variables
+.env
+.env.local 

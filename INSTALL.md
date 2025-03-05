@@ -42,7 +42,30 @@ pip install -e .
 
 ### 4. Set up your OpenAI API key
 
-You need to set your OpenAI API key as an environment variable:
+You have several options to set up your OpenAI API key:
+
+#### Option 1: Using a .env file (recommended)
+
+The application includes a .env file for convenient API key storage:
+
+```bash
+# Copy the example environment file
+cp .env.example .env
+
+# Edit the .env file with your favorite editor
+nano .env  # or vim, or any text editor
+```
+
+Then add your OpenAI API key to the .env file:
+```
+OPENAI_API_KEY=your_openai_api_key_here
+```
+
+The application will automatically detect and use this key when it starts.
+
+#### Option 2: Using environment variables
+
+You can set your OpenAI API key as an environment variable:
 
 ```bash
 export OPENAI_API_KEY="your-api-key"
@@ -50,7 +73,7 @@ export OPENAI_API_KEY="your-api-key"
 
 For permanent setup, add the export command to your shell profile file (e.g., `.bashrc`, `.zshrc`).
 
-Alternatively, you can use the provided script:
+#### Option 3: Using the provided script
 
 ```bash
 chmod +x set_api_key.sh  # Make the script executable (first time only)

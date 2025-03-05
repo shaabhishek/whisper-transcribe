@@ -50,13 +50,28 @@ source .venv/bin/activate
 
 ### Setting up your API Key
 
-Set up your OpenAI API key as an environment variable:
+You can set up your OpenAI API key in several ways:
 
-```bash
-export OPENAI_API_KEY="your-api-key"
-```
+1. **Using a .env file (recommended):**
+   
+   Copy the example environment file and add your API key:
+   ```bash
+   cp .env.example .env
+   ```
+   
+   Then edit the `.env` file and add your OpenAI API key:
+   ```
+   OPENAI_API_KEY=your_openai_api_key_here
+   ```
 
-Or use the provided script:
+2. **Using environment variables:**
+   
+   Set up your OpenAI API key as an environment variable:
+   ```bash
+   export OPENAI_API_KEY="your-api-key"
+   ```
+
+3. **Using the provided script:**
 
 ```bash
 ./set_api_key.sh your-api-key
