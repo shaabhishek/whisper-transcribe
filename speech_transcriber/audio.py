@@ -1,5 +1,6 @@
 """Audio recording functionality for the Speech Transcriber."""
 
+import logging
 import os
 import tempfile
 import threading
@@ -26,34 +27,60 @@ class AudioRecorder:
     self.is_recording = False
     self.recording_thread = None
     self.temp_file = None
-    self._max_time_reached = (
-      False  # Flag to track if max recording time was reached
-    )
+    self._max_time_reached = False  # Flag to track if max recording time was reached
 
   def start_recording(self) -> None:
-    """Start recording audio from the microphone."""
+    """Start recording audio."""
     if self.is_recording:
       return
 
-    self.frames = []
     self.is_recording = True
+    self.frames = []
     self._max_time_reached = False  # Reset the flag
 
     # Create a temporary file for the recording
     self.temp_file = tempfile.NamedTemporaryFile(suffix='.wav', delete=False)
 
-    # Open the audio stream
-    self.stream = self.audio.open(
-      format=pyaudio.paInt16,
-      channels=CHANNELS,
-      rate=SAMPLE_RATE,
-      input=True,
-      frames_per_buffer=CHUNK_SIZE,
-    )
+    # List available input devices to help with debugging
+    info = self.audio.get_host_api_info_by_index(0)
+    num_devices = info.get('deviceCount')
+    devices = []
 
-    # Start recording in a separate thread
-    self.recording_thread = threading.Thread(target=self._record)
-    self.recording_thread.start()
+    for i in range(num_devices):
+      device_info = self.audio.get_device_info_by_host_api_device_index(0, i)
+      if device_info.get('maxInputChannels') > 0:
+        devices.append((i, device_info.get('name')))
+
+    # Log available devices for debugging
+    for device_id, name in devices:
+      logging.info(f'Input device {device_id}: {name}')
+
+    # Try to find default input device index
+    try:
+      default_input_device_index = self.audio.get_default_input_device_info()['index']
+    except OSError:
+      # If default device retrieval fails, use the first available input device
+      default_input_device_index = devices[0][0] if devices else 0
+
+    try:
+      self.stream = self.audio.open(
+        format=pyaudio.paInt16,
+        channels=CHANNELS,
+        rate=SAMPLE_RATE,
+        input=True,
+        frames_per_buffer=CHUNK_SIZE,
+        input_device_index=default_input_device_index,
+      )
+
+      # Start recording in a separate thread
+      self.recording_thread = threading.Thread(target=self._record)
+      self.recording_thread.start()
+
+      logging.info('Recording started')
+    except OSError as e:
+      self.is_recording = False
+      logging.error(f'Failed to start recording: {e}')
+      raise
 
   def _record(self) -> None:
     """Record audio data in a loop until stopped."""
@@ -79,9 +106,7 @@ class AudioRecorder:
     self.is_recording = False
 
     # Check if this was called from the recording thread (auto-stop case)
-    called_from_recording_thread = (
-      threading.current_thread() is self.recording_thread
-    )
+    called_from_recording_thread = threading.current_thread() is self.recording_thread
 
     # Wait for the recording thread to finish, but only if not called from the recording thread
     if (
@@ -99,6 +124,11 @@ class AudioRecorder:
 
     # Calculate the duration of the recording
     duration = len(self.frames) * CHUNK_SIZE / SAMPLE_RATE
+
+    # Safety check - if temp_file is None, create it now
+    if self.temp_file is None:
+      logging.warning('temp_file was None during stop_recording, creating a new one')
+      self.temp_file = tempfile.NamedTemporaryFile(suffix='.wav', delete=False)
 
     # Save the recording to the temporary file
     with wave.open(self.temp_file.name, 'wb') as wf:
