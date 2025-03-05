@@ -1,6 +1,4 @@
-"""
-Notification functionality for the Speech Transcriber.
-"""
+"""Notification functionality for the Speech Transcriber."""
 
 import subprocess
 
@@ -8,8 +6,7 @@ from speech_transcriber.config import NOTIFICATION_ENABLED
 
 
 def show_notification(title: str, message: str) -> None:
-    """
-    Show a notification to the user on macOS.
+    """Show a notification to the user on macOS.
 
     Args:
         title: The notification title

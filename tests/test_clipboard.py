@@ -1,6 +1,4 @@
-"""
-Tests for the clipboard module.
-"""
+"""Tests for the clipboard module."""
 
 import unittest
 from unittest.mock import patch
@@ -51,7 +49,6 @@ class TestClipboard(unittest.TestCase):
 
     def test_paste_from_clipboard_failure(self):
         """Test handling of clipboard paste failures."""
-
         # Mock pyperclip.paste to raise an exception
         with patch("pyperclip.paste", side_effect=Exception("Clipboard error")):
             # Capture print output to avoid cluttering test output

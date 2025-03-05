@@ -1,6 +1,4 @@
-"""
-Configuration data structures for transcription services.
-"""
+"""Configuration data structures for transcription services."""
 
 from dataclasses import dataclass
 from typing import Optional
@@ -32,14 +30,14 @@ class TranscriptionConfig:
     # Utility for getting file info
     @staticmethod
     def get_file_info(file_path: str) -> Optional[tuple[int, float, float]]:
-        """
-        Get file information including existence check and size.
+        """Get file information including existence check and size.
 
         Args:
             file_path: Path to the file
 
         Returns:
-            Tuple of (file_size_bytes, file_size_kb, file_size_mb) or None if file doesn't exist
+            Tuple of (file_size_bytes, file_size_kb, file_size_mb) or None if
+                file doesn't exist
         """
         import os
 
@@ -54,8 +52,7 @@ class TranscriptionConfig:
 
     @staticmethod
     def get_mime_type(audio_file_path: str) -> str:
-        """
-        Determine the MIME type based on the file extension.
+        """Determine the MIME type based on the file extension.
 
         Args:
             audio_file_path: Path to the audio file
@@ -83,8 +80,7 @@ class TranscriptionConfig:
 
     @classmethod
     def from_env(cls):
-        """
-        Create a TranscriptionConfig from environment variables.
+        """Create a TranscriptionConfig from environment variables.
 
         Returns:
             TranscriptionConfig instance

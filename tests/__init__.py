@@ -1,3 +1,1 @@
-"""
-Test package for the Speech Transcriber application.
-"""
+"""Test package for the Speech Transcriber application."""

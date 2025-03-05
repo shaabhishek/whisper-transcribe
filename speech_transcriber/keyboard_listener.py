@@ -1,6 +1,4 @@
-"""
-Keyboard listener for detecting activation key combinations.
-"""
+"""Keyboard listener for detecting activation key combinations."""
 
 import time
 from typing import Any, Callable, Optional, Set
@@ -17,12 +15,13 @@ class KeyboardListener:
     def __init__(
         self, on_activate: Callable[[], None], on_deactivate: Callable[[], None]
     ):
-        """
-        Initialize the keyboard listener.
+        """Initialize the keyboard listener.
 
         Args:
-            on_activate: Callback function to call when activation keys are pressed to start recording
-            on_deactivate: Callback function to call when activation keys are pressed to stop recording
+            on_activate: Callback function to call when activation keys are
+                pressed to start recording
+            on_deactivate: Callback function to call when activation keys are
+                pressed to stop recording
         """
         self.on_activate = on_activate
         self.on_deactivate = on_deactivate

@@ -1,6 +1,4 @@
-"""
-Tests for the keyboard listener module.
-"""
+"""Tests for the keyboard listener module."""
 
 import unittest
 from unittest.mock import MagicMock, patch

@@ -1,6 +1,4 @@
-"""
-Setup script for the Speech Transcriber package.
-"""
+"""Setup script for the Speech Transcriber package."""
 
 from setuptools import find_packages, setup
 

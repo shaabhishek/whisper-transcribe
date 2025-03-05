@@ -1,6 +1,4 @@
-"""
-Tests for the audio recorder module.
-"""
+"""Tests for the audio recorder module."""
 
 import os
 import tempfile

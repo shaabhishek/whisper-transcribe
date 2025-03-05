@@ -1,6 +1,4 @@
-"""
-Tests for the sound module.
-"""
+"""Tests for the sound module."""
 
 import unittest
 from unittest.mock import MagicMock, patch

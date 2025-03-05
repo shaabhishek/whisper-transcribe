@@ -1,6 +1,4 @@
-"""
-Utility functions for the speech transcriber application.
-"""
+"""Utility functions for the speech transcriber application."""
 
 import logging
 from typing import Optional
@@ -25,8 +23,7 @@ class Logger:
 
     @classmethod
     def info(cls, message: str) -> None:
-        """
-        Log an info message.
+        """Log an info message.
 
         Args:
             message: The message to log
@@ -36,8 +33,7 @@ class Logger:
 
     @classmethod
     def error(cls, message: str, exc: Optional[Exception] = None) -> None:
-        """
-        Log an error message.
+        """Log an error message.
 
         Args:
             message: The error message to log
@@ -51,8 +47,7 @@ class Logger:
 
     @classmethod
     def warn(cls, message: str) -> None:
-        """
-        Log a warning message.
+        """Log a warning message.
 
         Args:
             message: The warning message to log
@@ -62,8 +57,7 @@ class Logger:
 
     @classmethod
     def set_enabled(cls, enabled: bool) -> None:
-        """
-        Enable or disable logging.
+        """Enable or disable logging.
 
         Args:
             enabled: Whether logging should be enabled
@@ -73,8 +67,7 @@ class Logger:
 
 # Function to report file size
 def report_file_size(file_size_bytes: int, service_name: str) -> None:
-    """
-    Report the size of a file being uploaded to a service.
+    """Report the size of a file being uploaded to a service.
 
     Args:
         file_size_bytes: Size of the file in bytes

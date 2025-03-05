@@ -1,6 +1,4 @@
-"""
-Configuration settings for the Speech Transcriber application.
-"""
+"""Configuration settings for the Speech Transcriber application."""
 
 import os
 from pathlib import Path

@@ -1,6 +1,4 @@
-"""
-Tests for the notification module.
-"""
+"""Tests for the notification module."""
 
 import unittest
 from unittest.mock import patch

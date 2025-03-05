@@ -1,6 +1,4 @@
-"""
-Tests for the main application module.
-"""
+"""Tests for the main application module."""
 
 import signal
 import unittest

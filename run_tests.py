@@ -1,7 +1,5 @@
 #!/usr/bin/env python
-"""
-Test runner script for the Speech Transcriber application.
-"""
+"""Test runner script for the Speech Transcriber application."""
 
 import sys
 import unittest

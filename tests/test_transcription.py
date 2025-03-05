@@ -1,6 +1,4 @@
-"""
-Tests for the transcription module.
-"""
+"""Tests for the transcription module."""
 
 import unittest
 from unittest.mock import MagicMock, patch
