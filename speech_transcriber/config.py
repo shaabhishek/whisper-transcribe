@@ -23,6 +23,11 @@ except ImportError:
 
 # API Configuration
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
+
+# Transcription Service Configuration
+# Options: "openai" or "gemini"
+TRANSCRIPTION_SERVICE = os.environ.get("TRANSCRIPTION_SERVICE", "openai").lower()
 
 # Audio Recording Configuration
 SAMPLE_RATE = 16000  # Hz (default rate for Whisper models)
@@ -31,9 +36,12 @@ CHUNK_SIZE = 1024  # Frames per buffer
 FORMAT = "wav"  # Audio format
 MAX_RECORDING_TIME = 600  # Maximum recording time in seconds
 
-# Whisper API Configuration
+# OpenAI Whisper API Configuration
 WHISPER_MODEL = "whisper-1"
 LANGUAGE = os.environ.get("LANGUAGE", "en")  # Language code (optional)
+
+# Gemini API Configuration
+GEMINI_MODEL = "gemini-2.0-flash"  # Model for audio transcription
 
 # UI Configuration
 NOTIFICATION_ENABLED = True  # Show notifications during recording/transcription

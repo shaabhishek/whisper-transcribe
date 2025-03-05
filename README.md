@@ -3,13 +3,13 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 
-A Python application that transcribes speech to text using OpenAI's Whisper API, activated by a custom keypress. This macOS-focused tool streamlines the transcription workflow by automatically copying the result to your clipboard.
+A Python application that transcribes speech to text using OpenAI's Whisper API or Google's Gemini API, activated by a custom keypress. This macOS-focused tool streamlines the transcription workflow by automatically copying the result to your clipboard.
 
 ## ✨ Features
 
 - 🎹 Activate recording with a customizable key combination
 - 🎤 Record audio directly from your microphone
-- 🔄 Transcribe speech using OpenAI's powerful Whisper API
+- 🔄 Transcribe speech using OpenAI's Whisper API or Google's Gemini API
 - 📋 Automatically paste transcribed text into the active text field
 - 🔔 macOS native notifications for operation status
 - 🧪 Comprehensive test suite
@@ -19,6 +19,7 @@ A Python application that transcribes speech to text using OpenAI's Whisper API,
 - macOS (currently not supported on other platforms)
 - Python 3.8+
 - OpenAI API key
+- Google Gemini API key
 - Microphone
 - PortAudio library (required for PyAudio)
 
@@ -50,7 +51,7 @@ source .venv/bin/activate
 
 ### Setting up your API Key
 
-You can set up your OpenAI API key in several ways:
+You can set up API keys in several ways. The application supports both OpenAI and Google Gemini APIs for transcription.
 
 1. **Using a .env file (recommended):**
    
@@ -59,22 +60,37 @@ You can set up your OpenAI API key in several ways:
    cp .env.example .env
    ```
    
-   Then edit the `.env` file and add your OpenAI API key:
+   Then edit the `.env` file and add your preferred API key:
    ```
+   # Choose either OpenAI or Gemini
    OPENAI_API_KEY=your_openai_api_key_here
+   GEMINI_API_KEY=your_gemini_api_key_here
+   
+   # Select which service to use (options: "openai" or "gemini")
+   TRANSCRIPTION_SERVICE=openai
    ```
 
 2. **Using environment variables:**
    
-   Set up your OpenAI API key as an environment variable:
+   Set up your API keys as environment variables:
    ```bash
-   export OPENAI_API_KEY="your-api-key"
+   # For OpenAI
+   export OPENAI_API_KEY="your-openai-api-key"
+   export TRANSCRIPTION_SERVICE="openai"
+   
+   # OR for Gemini
+   export GEMINI_API_KEY="your-gemini-api-key"
+   export TRANSCRIPTION_SERVICE="gemini"
    ```
 
 3. **Using the provided script:**
 
 ```bash
-./set_api_key.sh your-api-key
+# For OpenAI
+./set_api_key.sh openai your-openai-api-key
+
+# OR for Gemini
+./set_api_key.sh gemini your-gemini-api-key
 ```
 
 ## 🚀 Usage
@@ -108,7 +124,9 @@ You can modify the following settings in the `config.py` file:
 | Setting | Description | Default |
 |---------|-------------|---------|
 | `DOUBLE_PRESS_INTERVAL` | Maximum time between Alt key presses to detect as double-press (seconds) | 0.5 |
+| `TRANSCRIPTION_SERVICE` | Which API to use for transcription | openai |
 | `WHISPER_MODEL` | OpenAI Whisper model to use | whisper-1 |
+| `GEMINI_MODEL` | Google Gemini model to use | gemini-pro-vision |
 | `LANGUAGE` | Language code for transcription | en |
 | `MAX_RECORDING_TIME` | Maximum recording time in seconds | 120 |
 
@@ -147,7 +165,11 @@ For the best transcription results, consider these audio optimization tips:
    - USB condenser microphones are good affordable options for clear speech capture
    - Headset microphones can help maintain consistent distance from the sound source
 
-### 🔍 Whisper API Features
+### 🔍 Transcription API Features
+
+This application supports two transcription services:
+
+#### OpenAI Whisper API
 
 OpenAI's Whisper API offers several configuration options that affect transcription quality and behavior:
 
@@ -156,41 +178,23 @@ OpenAI's Whisper API offers several configuration options that affect transcript
 | `WHISPER_MODEL` | Whisper model to use | whisper-1 | • `whisper-1`: Standard API model<br>• OpenAI also offers more advanced models like the `large-v3` which may be accessible through their API[⁴](#references) |
 | `LANGUAGE` | Language code for transcription | en | Any [ISO 639-1 language code](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes) (e.g., 'en', 'fr', 'de', 'es', 'ja'). Leave empty for auto-detection[⁵](#references). |
 
-#### Whisper Model Options
+#### Google Gemini API
 
-While the default `whisper-1` model is used in this application, OpenAI has released several versions of the Whisper model with different capabilities[⁴](#references):
+Google's Gemini API provides an alternative for transcription:
 
-| Model Size | Parameters | Description |
-|------------|------------|-------------|
-| tiny       | 39M        | Fastest, lowest accuracy |
-| base       | 74M        | Fast with reasonable accuracy |
-| small      | 244M       | Good balance between speed and accuracy |
-| medium     | 769M       | High accuracy but slower |
-| large-v2   | 1550M      | Highest accuracy (previous version) |
-| large-v3   | 1550M      | Latest version with improved accuracy |
+| Setting | Description | Default | Notes |
+|---------|-------------|---------|-------|
+| `GEMINI_MODEL` | Gemini model to use | gemini-pro-vision | Used for processing audio content |
+| `LANGUAGE` | Language code for transcription | en | Any [ISO 639-1 language code](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes) to specify the language in the transcription prompt |
 
-Note: The OpenAI API may not expose all these model variations directly. The application currently uses the API-provided `whisper-1` model.
+#### Choosing an API
 
-#### Language Codes
+Both APIs provide excellent transcription capabilities, but there are some considerations:
 
-Setting the `LANGUAGE` parameter can significantly improve transcription accuracy for non-English speech[⁵](#references). Common language codes:
+- **OpenAI Whisper**: Specifically designed for speech-to-text with high accuracy
+- **Google Gemini**: More general-purpose AI with multimodal capabilities, which can handle audio transcription
 
-| Language | Code |
-|----------|------|
-| English | en |
-| Spanish | es |
-| French | fr |
-| German | de |
-| Italian | it |
-| Japanese | ja |
-| Mandarin | zh |
-| Hindi | hi |
-
-#### Performance Considerations
-
-- **Audio Quality vs. File Size**: Higher sample rates provide better audio quality but generate larger files[⁶](#references).
-- **Model Selection**: The standard `whisper-1` model works well for most use cases, while the larger models provide higher accuracy at a higher cost[⁴](#references).
-- **Language Specification**: Specifying the language can improve accuracy significantly compared to auto-detection, especially for non-English languages[⁷](#references).
+To select which API to use, set the `TRANSCRIPTION_SERVICE` value in your `.env` file or environment variables to either `"openai"` or `"gemini"`.
 
 ## 🧪 Testing
 
@@ -240,6 +244,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🙏 Acknowledgments
 
 - [OpenAI](https://openai.com/) for the Whisper API
+- [Google](https://cloud.google.com/) for the Gemini API
 - [PyAudio](https://people.csail.mit.edu/hubert/pyaudio/) for audio recording capabilities
 - [pynput](https://pynput.readthedocs.io/) for keyboard monitoring
 

@@ -4,7 +4,7 @@
 
 - macOS
 - Python 3.8 or higher
-- OpenAI API key
+- OpenAI API key or Google Gemini API key
 - Working microphone
 - PortAudio library (required for PyAudio)
 
@@ -40,9 +40,9 @@ source .venv/bin/activate
 pip install -e .
 ```
 
-### 4. Set up your OpenAI API key
+### 4. Set up your API Key
 
-You have several options to set up your OpenAI API key:
+You have several options to set up your API key. The application supports both OpenAI's Whisper API and Google's Gemini API for transcription.
 
 #### Option 1: Using a .env file (recommended)
 
@@ -56,28 +56,44 @@ cp .env.example .env
 nano .env  # or vim, or any text editor
 ```
 
-Then add your OpenAI API key to the .env file:
+Then add your preferred API key to the .env file:
 ```
+# Choose either OpenAI or Gemini (or both)
 OPENAI_API_KEY=your_openai_api_key_here
+GEMINI_API_KEY=your_gemini_api_key_here
+
+# Select which service to use
+TRANSCRIPTION_SERVICE=openai  # or "gemini"
 ```
 
-The application will automatically detect and use this key when it starts.
+The application will automatically detect and use the configured service when it starts.
 
 #### Option 2: Using environment variables
 
-You can set your OpenAI API key as an environment variable:
+You can set your API keys as environment variables:
 
 ```bash
-export OPENAI_API_KEY="your-api-key"
+# For OpenAI
+export OPENAI_API_KEY="your-openai-api-key"
+export TRANSCRIPTION_SERVICE="openai"
+
+# OR for Gemini
+export GEMINI_API_KEY="your-gemini-api-key"
+export TRANSCRIPTION_SERVICE="gemini"
 ```
 
-For permanent setup, add the export command to your shell profile file (e.g., `.bashrc`, `.zshrc`).
+For permanent setup, add the export commands to your shell profile file (e.g., `.bashrc`, `.zshrc`).
 
 #### Option 3: Using the provided script
 
 ```bash
 chmod +x set_api_key.sh  # Make the script executable (first time only)
-./set_api_key.sh your-api-key
+
+# For OpenAI
+./set_api_key.sh openai your-openai-api-key
+
+# OR for Gemini
+./set_api_key.sh gemini your-gemini-api-key
 ```
 
 ## macOS Permissions
@@ -120,8 +136,9 @@ python -m speech_transcriber
 You can customize the application by modifying the `config.py` file:
 
 - Adjust the double-press interval (default: 0.5 seconds)
+- Choose which transcription service to use (OpenAI Whisper or Google Gemini)
 - Adjust audio recording parameters
-- Change the Whisper API model
+- Change the API models
 - Enable/disable notifications
 
 ## Troubleshooting
