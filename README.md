@@ -98,13 +98,24 @@ You can set up API keys in several ways. The application supports both OpenAI an
 1. Run the application:
    ```bash
    speech-transcriber
-   # Or if installed with -e:
-   python -m speech_transcriber
    ```
-2. **Double-press either left or right Alt key** to start recording
-3. Speak clearly into your microphone
-4. **Double-press either Alt key again** to stop recording and start transcription
-5. The transcribed text will be automatically pasted into the active text field
+
+2. Or specify a transcription service:
+   ```bash
+   # Use OpenAI Whisper API
+   speech-transcriber --service openai
+   
+   # Use Google Gemini API
+   speech-transcriber --service gemini
+   
+   # View all available options
+   speech-transcriber --help
+   ```
+
+3. Double-press either the left or right Alt key to start recording.
+4. Speak clearly into your microphone
+5. Double-press either Alt key again to stop recording and start transcription
+6. The transcribed text will be automatically pasted into the active text field
 
 ## 🔒 macOS Permissions
 

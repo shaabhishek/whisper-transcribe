@@ -1,5 +1,6 @@
 """Main entry point for the Speech Transcriber application."""
 
+import argparse
 import os
 import signal
 import sys
@@ -7,6 +8,7 @@ import time
 
 from speech_transcriber.audio import AudioRecorder
 from speech_transcriber.clipboard import copy_to_clipboard
+from speech_transcriber.config import GEMINI_API_KEY
 from speech_transcriber.config import OPENAI_API_KEY
 from speech_transcriber.keyboard_listener import KeyboardListener
 from speech_transcriber.notification import show_notification
@@ -18,10 +20,10 @@ from speech_transcriber.transcription import Transcriber
 class SpeechTranscriber:
   """Main application class for the Speech Transcriber."""
 
-  def __init__(self):
+  def __init__(self, service=None):
     """Initialize the Speech Transcriber application with required components."""
     self.audio_recorder = AudioRecorder()
-    self.transcriber = Transcriber()
+    self.transcriber = Transcriber(service=service)
     self.keyboard_listener = KeyboardListener(
       on_activate=self.start_recording,
       on_deactivate=self.stop_recording_and_transcribe,
@@ -31,10 +33,20 @@ class SpeechTranscriber:
 
   def start(self) -> None:
     """Start the application."""
-    if not OPENAI_API_KEY:
+    # Check API keys based on selected service
+    service = self.transcriber.config.transcription_service
+
+    if service == 'openai' and not OPENAI_API_KEY:
       print(
         'Error: OpenAI API key not set. Please set the '
         'OPENAI_API_KEY environment variable.'
+      )
+      sys.exit(1)
+
+    if service == 'gemini' and not GEMINI_API_KEY:
+      print(
+        'Error: Gemini API key not set. Please set the '
+        'GEMINI_API_KEY environment variable.'
       )
       sys.exit(1)
 
@@ -48,6 +60,7 @@ class SpeechTranscriber:
     self.keyboard_listener.start()
 
     print('Speech Transcriber is running.')
+    print(f'Using {service.upper()} as the transcription service.')
     print('Double-press either the left or right Alt key to start recording.')
     print('Double-press either Alt key again to stop recording and transcribe.')
     print('Press Ctrl+C to exit.')
@@ -167,7 +180,39 @@ class SpeechTranscriber:
 
 def main() -> None:
   """Main entry point for the application."""
-  app = SpeechTranscriber()
+  # Parse command line arguments
+  parser = argparse.ArgumentParser(
+    description='Speech Transcriber - Convert audio to text using AI services',
+    formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+  )
+
+  parser.add_argument(
+    '--service',
+    '-s',
+    choices=['openai', 'gemini'],
+    default=None,
+    help='Transcription service to use (overrides environment variable setting)',
+  )
+
+  parser.add_argument(
+    '--list-services',
+    action='store_true',
+    help='List available transcription services and exit',
+  )
+
+  args = parser.parse_args()
+
+  if args.list_services:
+    print('Available transcription services:')
+    print(
+      '  - openai: OpenAI Whisper API (requires OPENAI_API_KEY environment variable)'
+    )
+    print(
+      '  - gemini: Google Gemini API (requires GEMINI_API_KEY environment variable)'
+    )
+    sys.exit(0)
+
+  app = SpeechTranscriber(service=args.service)
   app.start()
 
 
