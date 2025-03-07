@@ -1,7 +1,8 @@
 """Tests for the transcription module."""
 
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
+from unittest.mock import patch
 
 from speech_transcriber.transcription import Transcriber
 from speech_transcriber.transcription_config import TranscriptionConfig
@@ -12,195 +13,238 @@ Logger.set_enabled(False)
 
 
 class TestTranscription(unittest.TestCase):
-    """Test cases for the transcription module."""
+  """Test cases for the transcription module."""
 
-    def setUp(self):
-        """Set up test fixtures."""
-        # Create a temporary test file path
-        self.test_audio_path = "/tmp/test_audio.wav"
+  def setUp(self):
+    """Set up test fixtures."""
+    # Create a mock configuration
+    self.config = MagicMock(spec=TranscriptionConfig)
+    self.config.transcription_service = 'openai'
+    self.config.openai_api_key = 'test_openai_key'
+    self.config.gemini_api_key = 'test_gemini_key'
+    self.config.whisper_model = 'whisper-1'
+    self.config.gemini_model = 'gemini-pro-vision'
+    self.config.language = 'en'
 
-        # Create a mock API response
-        self.mock_response = MagicMock()
-        self.mock_response.text = "This is a transcribed text"
+    # Create a mock transcriber
+    self.mock_transcriber = MagicMock()
+    self.mock_transcriber.transcribe.return_value = 'Test transcription'
 
-        # Create a mock for Gemini API response
-        self.mock_gemini_response = MagicMock()
-        self.mock_gemini_response.json.return_value = {
-            "candidates": [
-                {"content": {"parts": [{"text": "This is a transcribed text"}]}}
-            ]
-        }
-        self.mock_gemini_response.status_code = 200
+    # Create a transcription service with the mock transcriber
+    with patch('speech_transcriber.transcription.OpenAITranscriber') as mock_openai:
+      mock_openai.return_value = self.mock_transcriber
+      self.transcription_service = Transcriber(config=self.config)
 
-        # Create a test config with default OpenAI service
-        self.test_openai_config = TranscriptionConfig(
-            openai_api_key="test_openai_key",
-            gemini_api_key="test_gemini_key",
-            transcription_service="openai",
-        )
+  @patch('os.path.exists')
+  @patch('os.path.getsize')
+  def test_transcribe_success(self, mock_getsize, mock_exists):
+    """Test successful transcription."""
+    # Set up mocks
+    mock_exists.return_value = True
+    mock_getsize.return_value = 1024 * 1024  # 1MB file
 
-        # Create a test config with Gemini service
-        self.test_gemini_config = TranscriptionConfig(
-            openai_api_key="test_openai_key",
-            gemini_api_key="test_gemini_key",
-            transcription_service="gemini",
-        )
+    # Mock the file info
+    with patch.object(
+      TranscriptionConfig,
+      'get_file_info',
+      return_value=(1024 * 1024, 'audio/wav', '.wav'),
+    ):
+      # Call the transcribe method
+      result = self.transcription_service.transcribe('test.wav')
 
-        # Initialize the transcriber with the OpenAI config
-        with patch("openai.OpenAI"):
-            self.transcriber = Transcriber(config=self.test_openai_config)
+      # Verify the result
+      self.assertEqual(result, 'Test transcription')
+      self.mock_transcriber.transcribe.assert_called_once_with('test.wav')
 
-    @patch("os.path.exists")
-    @patch("os.path.getsize")
-    def test_transcribe_success(self, mock_getsize, mock_exists):
-        """Test successful transcription."""
-        # Set up mocks
-        mock_exists.return_value = True
-        # Mock file size: 1MB
-        mock_getsize.return_value = 1024 * 1024
+  @patch('os.path.exists')
+  def test_transcribe_file_not_found(self, mock_exists):
+    """Test transcription with a non-existent file."""
+    # Set up mocks
+    mock_exists.return_value = False
 
-        # Test with OpenAI
-        # Create a mock OpenAI transcriber
-        mock_openai_transcriber = MagicMock()
-        mock_openai_transcriber.transcribe.return_value = "This is a transcribed text"
+    # Mock the file info
+    with patch.object(TranscriptionConfig, 'get_file_info', return_value=None):
+      # Call the transcribe method
+      result = self.transcription_service.transcribe('nonexistent.wav')
 
-        # Replace the transcriber's transcriber with our mock
-        self.transcriber.transcriber = mock_openai_transcriber
+      # Verify the result
+      self.assertIsNone(result)
+      self.mock_transcriber.transcribe.assert_not_called()
 
-        # Call the transcribe method
-        result = self.transcriber.transcribe(self.test_audio_path)
+  @patch('os.path.exists')
+  @patch('os.path.getsize')
+  def test_transcribe_api_error(self, mock_getsize, mock_exists):
+    """Test transcription with an API error."""
+    # Set up mocks
+    mock_exists.return_value = True
+    mock_getsize.return_value = 1024 * 1024  # 1MB file
+    self.mock_transcriber.transcribe.side_effect = Exception('API Error')
 
-        # Verify that the correct text was returned
-        self.assertEqual(result, "This is a transcribed text")
+    # Mock the file info
+    with patch.object(
+      TranscriptionConfig,
+      'get_file_info',
+      return_value=(1024 * 1024, 'audio/wav', '.wav'),
+    ):
+      # Call the transcribe method
+      result = self.transcription_service.transcribe('test.wav')
 
-        # Test with Gemini
-        # Create a mock Gemini transcriber
-        mock_gemini_transcriber = MagicMock()
-        mock_gemini_transcriber.transcribe.return_value = "This is a transcribed text"
+      # Verify the result
+      self.assertIsNone(result)
+      self.mock_transcriber.transcribe.assert_called_once_with('test.wav')
 
-        # Set up a new transcriber with Gemini
-        gemini_transcriber = Transcriber(config=self.test_gemini_config)
-        gemini_transcriber.transcriber = mock_gemini_transcriber
+  @patch('os.path.exists')
+  @patch('os.path.getsize')
+  def test_exceeds_size_limit_gemini(self, mock_getsize, mock_exists):
+    """Test file size limit detection for Gemini."""
+    # Set up Gemini service
+    self.transcription_service.config.transcription_service = 'gemini'
 
-        # Call the transcribe method
-        result = gemini_transcriber.transcribe(self.test_audio_path)
+    # Test with a file that exceeds the limit
+    self.assertTrue(self.transcription_service._exceeds_size_limit(20))
 
-        # Verify that the correct text was returned
-        self.assertEqual(result, "This is a transcribed text")
+    # Test with a file under the limit
+    self.assertFalse(self.transcription_service._exceeds_size_limit(18))
 
-    @patch("os.path.exists")
-    def test_transcribe_file_not_found(self, mock_exists):
-        """Test transcription with a non-existent file."""
-        # Set up mock to return False (file does not exist)
-        mock_exists.return_value = False
+  @patch('os.path.exists')
+  @patch('os.path.getsize')
+  def test_exceeds_size_limit_openai(self, mock_getsize, mock_exists):
+    """Test file size limit detection for OpenAI."""
+    # Set up OpenAI service
+    self.transcription_service.config.transcription_service = 'openai'
 
-        # Call the transcribe method
-        result = self.transcriber.transcribe(self.test_audio_path)
+    # Test with a file that exceeds the limit
+    self.assertTrue(self.transcription_service._exceeds_size_limit(25))
 
-        # Verify that the file was checked for existence
-        mock_exists.assert_called_once_with(self.test_audio_path)
+    # Test with a file under the limit
+    self.assertFalse(self.transcription_service._exceeds_size_limit(23))
 
-        # Verify that None was returned
-        self.assertIsNone(result)
+  @patch('os.path.exists')
+  @patch('os.path.getsize')
+  @patch('speech_transcriber.audio_compression.AudioCompressor')
+  def test_compress_audio_file_success(
+    self, mock_compressor_class, mock_getsize, mock_exists
+  ):
+    """Test successful audio compression."""
+    # Set up mocks
+    mock_exists.return_value = True
+    mock_getsize.side_effect = [25 * 1024 * 1024, 15 * 1024 * 1024]  # 25MB -> 15MB
 
-    @patch("os.path.exists")
-    @patch("os.path.getsize")
-    def test_transcribe_api_error(self, mock_getsize, mock_exists):
-        """Test transcription with an API error."""
-        # Set up mocks
-        mock_exists.return_value = True
-        # Mock file size: 500KB
-        mock_getsize.return_value = 500 * 1024
+    # Mock the compressor instance
+    mock_compressor = MagicMock()
+    mock_compressor.compress_audio.return_value = '/tmp/compressed.mp3'
+    mock_compressor_class.return_value = mock_compressor
 
-        # Test with OpenAI
-        # Create a mock OpenAI transcriber that raises an exception
-        mock_openai_transcriber = MagicMock()
-        mock_openai_transcriber.transcribe.side_effect = Exception("API Error")
+    # Override calls to the actual ffmpeg command
+    with patch('subprocess.run'):
+      # Call the compression method
+      result = self.transcription_service._compress_audio_file('test.wav', 25)
 
-        # Replace the transcriber's transcriber with our mock
-        self.transcriber.transcriber = mock_openai_transcriber
+      # Verify the result
+      self.assertEqual(result, '/tmp/compressed.mp3')
+      mock_compressor.compress_audio.assert_called_once_with('test.wav', max_size_mb=24)
 
-        # Call the transcribe method - wrap in try/except to handle the exception
-        try:
-            result = self.transcriber.transcribe(self.test_audio_path)
-            # Should not reach here
-            self.assertIsNone(result)
-        except Exception:
-            pass  # Exception was expected
+  @patch('os.path.exists')
+  @patch('os.path.getsize')
+  @patch('speech_transcriber.audio_compression.AudioCompressor')
+  def test_compress_audio_file_failure(
+    self, mock_compressor_class, mock_getsize, mock_exists
+  ):
+    """Test failed audio compression."""
+    # Set up mocks
+    mock_exists.return_value = True
+    mock_getsize.return_value = 25 * 1024 * 1024  # 25MB
 
-        # Test with Gemini
-        # Create a mock Gemini transcriber that raises an exception
-        mock_gemini_transcriber = MagicMock()
-        mock_gemini_transcriber.transcribe.side_effect = Exception("Gemini API Error")
+    # Mock the compressor instance
+    mock_compressor = MagicMock()
+    mock_compressor.compress_audio.return_value = None  # Compression failed
+    mock_compressor_class.return_value = mock_compressor
 
-        # Set up a new transcriber with Gemini
-        gemini_transcriber = Transcriber(config=self.test_gemini_config)
-        gemini_transcriber.transcriber = mock_gemini_transcriber
+    # Override calls to the actual ffmpeg command
+    with patch('subprocess.run'):
+      # Call the compression method
+      result = self.transcription_service._compress_audio_file('test.wav', 25)
 
-        # Call the transcribe method - wrap in try/except to handle the exception
-        try:
-            result = gemini_transcriber.transcribe(self.test_audio_path)
-            # Should not reach here
-            self.assertIsNone(result)
-        except Exception:
-            pass  # Exception was expected
+      # Verify the result - should return original file on failure
+      self.assertEqual(result, 'test.wav')
+      mock_compressor.compress_audio.assert_called_once_with('test.wav', max_size_mb=24)
 
-    @patch("os.path.exists")
-    @patch("os.path.getsize")
-    def test_transcribe_with_language(self, mock_getsize, mock_exists):
-        """Test transcription with a specified language."""
-        # Set up mocks
-        mock_exists.return_value = True
-        # Mock file size: 200KB
-        mock_getsize.return_value = 200 * 1024
+  @patch('os.path.exists')
+  @patch('os.path.getsize')
+  @patch('speech_transcriber.audio_compression.AudioCompressor')
+  def test_handle_file_size_compression_needed(
+    self, mock_compressor_class, mock_getsize, mock_exists
+  ):
+    """Test file size handling when compression is needed."""
+    # Set up mocks
+    mock_exists.return_value = True
+    mock_getsize.side_effect = [25 * 1024 * 1024, 15 * 1024 * 1024]  # 25MB -> 15MB
 
-        # Create configs with language specified
-        openai_config_with_lang = TranscriptionConfig(
-            openai_api_key="test_openai_key",
-            gemini_api_key="test_gemini_key",
-            transcription_service="openai",
-            language="en",
-        )
+    # Mock the compressor
+    mock_compressor = MagicMock()
+    mock_compressor.compress_audio.return_value = '/tmp/compressed.mp3'
+    mock_compressor_class.return_value = mock_compressor
 
-        gemini_config_with_lang = TranscriptionConfig(
-            openai_api_key="test_openai_key",
-            gemini_api_key="test_gemini_key",
-            transcription_service="gemini",
-            language="en",
-        )
+    # Override calls to the actual ffmpeg command
+    with patch('subprocess.run'):
+      # Mock the file info
+      file_info = (25 * 1024 * 1024, 'audio/wav', '.wav')
 
-        # Test with OpenAI
-        # Create a mock OpenAI transcriber
-        mock_openai_transcriber = MagicMock()
-        mock_openai_transcriber.transcribe.return_value = "This is a transcribed text"
+      # Call the method
+      result = self.transcription_service._handle_file_size('test.wav', file_info)
 
-        # Create a transcriber with OpenAI and language config
-        with patch("openai.OpenAI"):
-            openai_transcriber = Transcriber(config=openai_config_with_lang)
-            openai_transcriber.transcriber = mock_openai_transcriber
+      # Verify the result - should return compressed file
+      self.assertEqual(result, '/tmp/compressed.mp3')
+      mock_compressor.compress_audio.assert_called_once()
 
-            # Call the transcribe method
-            result = openai_transcriber.transcribe(self.test_audio_path)
+  @patch('os.path.exists')
+  @patch('os.path.getsize')
+  @patch('speech_transcriber.audio_compression.AudioCompressor')
+  def test_handle_file_size_no_compression_needed(
+    self, mock_compressor_class, mock_getsize, mock_exists
+  ):
+    """Test file size handling when no compression is needed."""
+    # Set up mocks
+    mock_exists.return_value = True
+    mock_getsize.return_value = 10 * 1024 * 1024  # 10MB
 
-            # Verify that the correct text was returned
-            self.assertEqual(result, "This is a transcribed text")
+    # Mock the file info
+    file_info = (10 * 1024 * 1024, 'audio/wav', '.wav')
 
-        # Test with Gemini
-        # Create a mock Gemini transcriber
-        mock_gemini_transcriber = MagicMock()
-        mock_gemini_transcriber.transcribe.return_value = "This is a transcribed text"
+    # Call the method
+    result = self.transcription_service._handle_file_size('test.wav', file_info)
 
-        # Create a transcriber with Gemini and language config
-        with patch("google.generativeai"):
-            gemini_transcriber = Transcriber(config=gemini_config_with_lang)
-            gemini_transcriber.transcriber = mock_gemini_transcriber
+    # Verify the result - should return original file
+    self.assertEqual(result, 'test.wav')
+    mock_compressor_class.assert_not_called()
 
-            # Call the transcribe method
-            result = gemini_transcriber.transcribe(self.test_audio_path)
+  @patch('os.path.exists')
+  @patch('os.unlink')
+  def test_cleanup_temp_file(self, mock_unlink, mock_exists):
+    """Test temporary file cleanup."""
+    # Set up mocks
+    mock_exists.return_value = True
 
-            # Verify that the correct text was returned
-            self.assertEqual(result, "This is a transcribed text")
+    # Call the cleanup method
+    self.transcription_service._cleanup_temp_file('/tmp/temp.mp3')
+
+    # Verify the file was deleted
+    mock_unlink.assert_called_once_with('/tmp/temp.mp3')
+
+  @patch('os.path.exists')
+  @patch('os.unlink')
+  def test_cleanup_temp_file_error(self, mock_unlink, mock_exists):
+    """Test temporary file cleanup with an error."""
+    # Set up mocks
+    mock_exists.return_value = True
+    mock_unlink.side_effect = Exception('Deletion error')
+
+    # Call the cleanup method - should not raise an exception
+    self.transcription_service._cleanup_temp_file('/tmp/temp.mp3')
+
+    # Verify the file deletion was attempted
+    mock_unlink.assert_called_once_with('/tmp/temp.mp3')
 
 
-if __name__ == "__main__":
-    unittest.main()
+if __name__ == '__main__':
+  unittest.main()

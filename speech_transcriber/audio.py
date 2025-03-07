@@ -34,14 +34,29 @@ class AudioRecorder:
     if self.is_recording:
       return
 
+    self._initialize_recording()
+    self._setup_temp_file()
+
+    try:
+      self._setup_audio_stream()
+      self._start_recording_thread()
+      logging.info('Recording started')
+    except OSError as e:
+      self._handle_recording_error(e)
+      raise
+
+  def _initialize_recording(self) -> None:
+    """Initialize recording state."""
     self.is_recording = True
     self.frames = []
-    self._max_time_reached = False  # Reset the flag
+    self._max_time_reached = False
 
-    # Create a temporary file for the recording
+  def _setup_temp_file(self) -> None:
+    """Create a temporary file for the recording."""
     self.temp_file = tempfile.NamedTemporaryFile(suffix='.wav', delete=False)
 
-    # List available input devices to help with debugging
+  def _get_available_input_devices(self) -> list:
+    """Get a list of available input devices."""
     info = self.audio.get_host_api_info_by_index(0)
     num_devices = info.get('deviceCount')
     devices = []
@@ -55,48 +70,60 @@ class AudioRecorder:
     for device_id, name in devices:
       logging.info(f'Input device {device_id}: {name}')
 
-    # Try to find default input device index
+    return devices
+
+  def _get_input_device_index(self, devices) -> int:
+    """Get the index of the input device to use."""
     try:
-      default_input_device_index = self.audio.get_default_input_device_info()['index']
+      return self.audio.get_default_input_device_info()['index']
     except OSError:
       # If default device retrieval fails, use the first available input device
-      default_input_device_index = devices[0][0] if devices else 0
+      return devices[0][0] if devices else 0
 
-    try:
-      self.stream = self.audio.open(
-        format=pyaudio.paInt16,
-        channels=CHANNELS,
-        rate=SAMPLE_RATE,
-        input=True,
-        frames_per_buffer=CHUNK_SIZE,
-        input_device_index=default_input_device_index,
-      )
+  def _setup_audio_stream(self) -> None:
+    """Set up the audio stream for recording."""
+    devices = self._get_available_input_devices()
+    default_input_device_index = self._get_input_device_index(devices)
 
-      # Start recording in a separate thread
-      self.recording_thread = threading.Thread(target=self._record)
-      self.recording_thread.start()
+    self.stream = self.audio.open(
+      format=pyaudio.paInt16,
+      channels=CHANNELS,
+      rate=SAMPLE_RATE,
+      input=True,
+      frames_per_buffer=CHUNK_SIZE,
+      input_device_index=default_input_device_index,
+    )
 
-      logging.info('Recording started')
-    except OSError as e:
-      self.is_recording = False
-      logging.error(f'Failed to start recording: {e}')
-      raise
+  def _start_recording_thread(self) -> None:
+    """Start the recording thread."""
+    self.recording_thread = threading.Thread(target=self._record)
+    self.recording_thread.start()
+
+  def _handle_recording_error(self, error) -> None:
+    """Handle errors during recording setup."""
+    self.is_recording = False
+    logging.error(f'Failed to start recording: {error}')
 
   def _record(self) -> None:
     """Record audio data in a loop until stopped."""
     start_time = time.time()
 
-    while self.is_recording:
-      if time.time() - start_time > MAX_RECORDING_TIME:
-        # Just set the flag and break the loop instead of calling stop_recording
-        # This avoids the thread trying to join itself
-        self.is_recording = False
-        # Signal that max time was reached (will be handled in stop_recording)
-        self._max_time_reached = True
-        break
+    try:
+      while self.is_recording:
+        if time.time() - start_time > MAX_RECORDING_TIME:
+          self._handle_max_time_reached()
+          break
 
-      data = self.stream.read(CHUNK_SIZE, exception_on_overflow=False)
-      self.frames.append(data)
+        data = self.stream.read(CHUNK_SIZE, exception_on_overflow=False)
+        self.frames.append(data)
+    except Exception as e:
+      logging.error(f'Error during recording: {e}')
+      self.is_recording = False
+
+  def _handle_max_time_reached(self) -> None:
+    """Handle when maximum recording time is reached."""
+    self.is_recording = False
+    self._max_time_reached = True
 
   def stop_recording(self) -> Tuple[str, float]:
     """Stop recording and save the audio to a file."""
@@ -104,7 +131,20 @@ class AudioRecorder:
       return '', 0.0
 
     self.is_recording = False
+    self._wait_for_recording_thread()
+    self._close_audio_stream()
 
+    # Calculate the duration of the recording
+    duration = len(self.frames) * CHUNK_SIZE / SAMPLE_RATE
+
+    # Ensure we have a temp file to write to
+    self._ensure_temp_file_exists()
+    self._save_audio_to_file()
+
+    return self.temp_file.name, duration
+
+  def _wait_for_recording_thread(self) -> None:
+    """Wait for the recording thread to finish."""
     # Check if this was called from the recording thread (auto-stop case)
     called_from_recording_thread = threading.current_thread() is self.recording_thread
 
@@ -116,28 +156,26 @@ class AudioRecorder:
     ):
       self.recording_thread.join()
 
-    # Stop and close the audio stream
+  def _close_audio_stream(self) -> None:
+    """Close the audio stream if it exists."""
     if self.stream:
       self.stream.stop_stream()
       self.stream.close()
       self.stream = None
 
-    # Calculate the duration of the recording
-    duration = len(self.frames) * CHUNK_SIZE / SAMPLE_RATE
-
-    # Safety check - if temp_file is None, create it now
+  def _ensure_temp_file_exists(self) -> None:
+    """Ensure that a temporary file exists for saving the recording."""
     if self.temp_file is None:
       logging.warning('temp_file was None during stop_recording, creating a new one')
       self.temp_file = tempfile.NamedTemporaryFile(suffix='.wav', delete=False)
 
-    # Save the recording to the temporary file
+  def _save_audio_to_file(self) -> None:
+    """Save the recorded audio frames to a WAV file."""
     with wave.open(self.temp_file.name, 'wb') as wf:
       wf.setnchannels(CHANNELS)
       wf.setsampwidth(self.audio.get_sample_size(pyaudio.paInt16))
       wf.setframerate(SAMPLE_RATE)
       wf.writeframes(b''.join(self.frames))
-
-    return self.temp_file.name, duration
 
   def cleanup(self) -> None:
     """Clean up resources."""

@@ -30,9 +30,7 @@ def play_sound(sound_path: str) -> bool:
 
     if HAVE_PYOBJC:
       # Use NSSound for native macOS sound playback
-      ns_sound = NSSound.alloc().initWithContentsOfFile_byReference_(
-        sound_path, True
-      )
+      ns_sound = NSSound.alloc().initWithContentsOfFile_byReference_(sound_path, True)
       if ns_sound:
         ns_sound.play()
         # Wait for the sound to start playing

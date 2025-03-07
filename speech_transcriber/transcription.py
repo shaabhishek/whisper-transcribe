@@ -3,10 +3,13 @@
 from abc import ABC
 from abc import abstractmethod
 import base64
+import os
 from typing import Optional
+from typing import Tuple
 
 from openai import OpenAI
 
+from speech_transcriber.audio_compression import AudioCompressor
 from speech_transcriber.transcription_config import TranscriptionConfig
 from speech_transcriber.utils import Logger
 from speech_transcriber.utils import report_file_size
@@ -121,8 +124,6 @@ class GeminiTranscriber(BaseTranscriber):
 
     try:
       # Set environment variable to prevent or reduce absl logging issues
-      import os
-
       os.environ['ABSL_LOGGING_VERBOSITY'] = '0'
 
       # Try to initialize absl logging early
@@ -248,31 +249,12 @@ class GeminiTranscriber(BaseTranscriber):
             self.genai.configure(api_key=None)
           except Exception as e:
             Logger.error(f'Error resetting Gemini configuration: {e}')
-
-        # Explicitly delete genai references to help with garbage collection
-        try:
-          # Remove our reference to genai to help with cleanup
-          delattr(self, 'genai')
-        except Exception:
-          # Safe to ignore any issues with deleting attributes
-          pass
-
-        # Force a garbage collection cycle
-        try:
-          import gc
-
-          gc.collect()
-        except Exception:
-          # Safe to ignore any gc errors
-          pass
-
-      Logger.info('Gemini resources cleanup completed')
     except Exception as e:
       Logger.error(f'Error during Gemini cleanup: {e}')
 
 
 class Transcriber:
-  """Factory class that provides the appropriate transcription service."""
+  """Factory class that provides transcription services with appropriate handling."""
 
   def __init__(
     self,
@@ -287,28 +269,32 @@ class Transcriber:
             config.transcription_service if provided.
     """
     self.config = config or TranscriptionConfig.from_env()
+    self._override_service(service)
+    self.transcriber = self._create_transcriber()
 
-    # Override the service if provided
+  def _override_service(self, service: Optional[str]) -> None:
+    """Override the service in the config if provided."""
     if service:
       self.config.transcription_service = service.lower()
 
-    # Select the appropriate transcriber based on configuration
+  def _create_transcriber(self) -> BaseTranscriber:
+    """Create the appropriate transcriber based on configuration."""
     if self.config.transcription_service == 'gemini' and self.config.gemini_api_key:
-      self.transcriber = GeminiTranscriber(self.config)
       Logger.info('Using Gemini API for transcription')
+      return GeminiTranscriber(self.config)
     elif self.config.transcription_service == 'openai' and self.config.openai_api_key:
-      self.transcriber = OpenAITranscriber(self.config)
       Logger.info('Using OpenAI Whisper API for transcription')
+      return OpenAITranscriber(self.config)
     else:
       # Default to OpenAI if no valid configuration is found
       Logger.warn(
         f"Invalid transcription service '{self.config.transcription_service}' "
         'or missing API key. Defaulting to OpenAI.'
       )
-      self.transcriber = OpenAITranscriber(self.config)
+      return OpenAITranscriber(self.config)
 
   def transcribe(self, audio_file_path: str) -> Optional[str]:
-    """Transcribe the audio file using the configured service.
+    """Transcribe the audio file using the selected transcription service.
 
     Args:
         audio_file_path: Path to the audio file to transcribe
@@ -316,12 +302,89 @@ class Transcriber:
     Returns:
         The transcribed text, or None if transcription failed
     """
-    return self.transcriber.transcribe(audio_file_path)
+    # Validate file exists
+    file_info = self._validate_file(audio_file_path)
+    if not file_info:
+      return None
+
+    # Check if compression is needed
+    audio_path = self._handle_file_size(audio_file_path, file_info)
+    if not audio_path:
+      return None
+
+    # Perform transcription
+    try:
+      return self.transcriber.transcribe(audio_path)
+    except Exception as e:
+      Logger.error(
+        f'Error transcribing audio with {self.config.transcription_service}: {e}'
+      )
+      return None
+    finally:
+      # Clean up temporary file if it's not the original
+      if audio_path != audio_file_path:
+        self._cleanup_temp_file(audio_path)
+
+  def _validate_file(self, file_path: str) -> Optional[Tuple]:
+    """Validate that the file exists and return its info."""
+    file_info = TranscriptionConfig.get_file_info(file_path)
+    if not file_info:
+      Logger.error(f'Audio file not found at {file_path}')
+      return None
+    return file_info
+
+  def _handle_file_size(self, audio_file_path: str, file_info: Tuple) -> Optional[str]:
+    """Compress the file if it exceeds size limits."""
+    file_size_bytes, _, _ = file_info
+    file_size_mb = file_size_bytes / (1024 * 1024)
+
+    # Check size limits based on service
+    if self._exceeds_size_limit(file_size_mb):
+      return self._compress_audio_file(audio_file_path, file_size_mb)
+
+    return audio_file_path
+
+  def _exceeds_size_limit(self, file_size_mb: float) -> bool:
+    """Check if the file size exceeds the service limit."""
+    if self.config.transcription_service == 'gemini' and file_size_mb > 19:
+      return True
+    if self.config.transcription_service == 'openai' and file_size_mb > 24:
+      return True
+    return False
+
+  def _compress_audio_file(
+    self, audio_file_path: str, file_size_mb: float
+  ) -> Optional[str]:
+    """Compress the audio file to meet size requirements."""
+    max_size = 19 if self.config.transcription_service == 'gemini' else 24
+    Logger.info(
+      f'Audio file size ({file_size_mb:.2f} MB) exceeds API limit. Compressing...'
+    )
+
+    try:
+      compressor = AudioCompressor()
+      compressed_file = compressor.compress_audio(audio_file_path, max_size_mb=max_size)
+
+      if compressed_file and os.path.exists(compressed_file):
+        compressed_size = os.path.getsize(compressed_file) / (1024 * 1024)
+        Logger.info(f'Using compressed audio file: {compressed_size:.2f} MB')
+        return compressed_file
+      else:
+        Logger.error('Compression failed, using original file')
+        return audio_file_path
+    except Exception as e:
+      Logger.error(f'Error compressing audio file: {e}')
+      return audio_file_path
+
+  def _cleanup_temp_file(self, file_path: str) -> None:
+    """Clean up a temporary file."""
+    if os.path.exists(file_path):
+      try:
+        os.unlink(file_path)
+      except Exception as e:
+        Logger.error(f'Error removing temporary compressed file: {e}')
 
   def cleanup(self) -> None:
-    """Clean up resources used by the transcriber.
-
-    This should be called when the application is shutting down.
-    """
+    """Clean up resources used by the transcriber."""
     if hasattr(self, 'transcriber'):
       self.transcriber.cleanup()

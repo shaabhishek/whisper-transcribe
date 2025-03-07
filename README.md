@@ -13,6 +13,7 @@ A Python application that transcribes speech to text using OpenAI's Whisper API 
 - 📋 Automatically paste transcribed text into the active text field
 - 🔔 macOS native notifications for operation status
 - 🧪 Comprehensive test suite
+- 🔄 Audio compression for handling large recordings (requires ffmpeg)
 
 ## 🔧 Requirements
 
@@ -22,6 +23,7 @@ A Python application that transcribes speech to text using OpenAI's Whisper API 
 - Google Gemini API key
 - Microphone
 - PortAudio library (required for PyAudio)
+- ffmpeg (for audio compression)
 
 ## 📦 Installation
 
@@ -44,6 +46,9 @@ cd whisper-transcribe
 # Install PortAudio (required for PyAudio)
 brew install portaudio
 
+# Install ffmpeg (required for audio compression)
+brew install ffmpeg
+
 # Install dependencies using uv
 uv sync
 source .venv/bin/activate
@@ -63,8 +68,8 @@ You can set up API keys in several ways. The application supports both OpenAI an
    Then edit the `.env` file and add your preferred API key:
    ```
    # Choose either OpenAI or Gemini
-   OPENAI_API_KEY=your_openai_api_key_here
-   GEMINI_API_KEY=your_gemini_api_key_here
+   OPENAI_API_KEY=your_openai_api_key
+   GEMINI_API_KEY=your_gemini_api_key
    
    # Select which service to use (options: "openai" or "gemini")
    TRANSCRIPTION_SERVICE=openai
