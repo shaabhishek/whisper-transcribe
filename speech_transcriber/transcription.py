@@ -47,7 +47,7 @@ class BaseTranscriber(ABC):
 
 
 class OpenAITranscriber(BaseTranscriber):
-  """Transcribes audio files using OpenAI's Whisper API."""
+  """Transcribes audio files using OpenAI's GPT-4o API."""
 
   def __init__(self, config: Optional[TranscriptionConfig] = None):
     """Initialize the OpenAI transcriber.
@@ -65,7 +65,7 @@ class OpenAITranscriber(BaseTranscriber):
     self.client = OpenAI(api_key=self.config.openai_api_key)
 
   def transcribe(self, audio_file_path: str) -> Optional[str]:
-    """Transcribe the audio file using the Whisper API.
+    """Transcribe the audio file using the GPT-4o API.
 
     Args:
         audio_file_path: Path to the audio file to transcribe
@@ -81,13 +81,13 @@ class OpenAITranscriber(BaseTranscriber):
 
     # Get file size and log it
     file_size_bytes, _, _ = file_info
-    report_file_size(file_size_bytes, 'Whisper API')
+    report_file_size(file_size_bytes, 'GPT-4o API')
 
     try:
       with open(audio_file_path, 'rb') as audio_file:
         # Prepare the request parameters
         params = {
-          'model': self.config.whisper_model,
+          'model': self.config.openai_model,
           'file': audio_file,
         }
 
@@ -283,7 +283,7 @@ class Transcriber:
       Logger.info('Using Gemini API for transcription')
       return GeminiTranscriber(self.config)
     elif self.config.transcription_service == 'openai' and self.config.openai_api_key:
-      Logger.info('Using OpenAI Whisper API for transcription')
+      Logger.info('Using OpenAI GPT-4o API for transcription')
       return OpenAITranscriber(self.config)
     else:
       # Default to OpenAI if no valid configuration is found

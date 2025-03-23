@@ -9,23 +9,23 @@ class TranscriptionConfig:
   """Configuration for transcription services."""
 
   # API Keys
-  openai_api_key: str = ''
-  gemini_api_key: str = ''
+  openai_api_key: str
+  gemini_api_key: str
 
   # Service selection
-  transcription_service: str = 'openai'
+  transcription_service: str
 
   # Audio configuration
-  sample_rate: int = 16000
-  channels: int = 1
-  chunk_size: int = 1024
-  format: str = 'wav'
-  max_recording_time: int = 600
+  sample_rate: int
+  channels: int
+  chunk_size: int
+  format: str
+  max_recording_time: int
 
   # Model configuration
-  whisper_model: str = 'whisper-1'
-  gemini_model: str = 'gemini-2.0-flash'
-  language: str = 'en'
+  openai_model: str
+  gemini_model: str
+  language: str
 
   # Utility for getting file info
   @staticmethod
@@ -85,19 +85,17 @@ class TranscriptionConfig:
     Returns:
         TranscriptionConfig instance
     """
-    from speech_transcriber.config import (
-      CHANNELS,
-      CHUNK_SIZE,
-      FORMAT,
-      GEMINI_API_KEY,
-      GEMINI_MODEL,
-      LANGUAGE,
-      MAX_RECORDING_TIME,
-      OPENAI_API_KEY,
-      SAMPLE_RATE,
-      TRANSCRIPTION_SERVICE,
-      WHISPER_MODEL,
-    )
+    from speech_transcriber.config import CHANNELS
+    from speech_transcriber.config import CHUNK_SIZE
+    from speech_transcriber.config import FORMAT
+    from speech_transcriber.config import GEMINI_API_KEY
+    from speech_transcriber.config import GEMINI_MODEL
+    from speech_transcriber.config import LANGUAGE
+    from speech_transcriber.config import MAX_RECORDING_TIME
+    from speech_transcriber.config import OPENAI_API_KEY
+    from speech_transcriber.config import OPENAI_MODEL
+    from speech_transcriber.config import SAMPLE_RATE
+    from speech_transcriber.config import TRANSCRIPTION_SERVICE
 
     return cls(
       openai_api_key=OPENAI_API_KEY,
@@ -108,7 +106,7 @@ class TranscriptionConfig:
       chunk_size=CHUNK_SIZE,
       format=FORMAT,
       max_recording_time=MAX_RECORDING_TIME,
-      whisper_model=WHISPER_MODEL,
+      openai_model=OPENAI_MODEL,
       gemini_model=GEMINI_MODEL,
       language=LANGUAGE,
     )

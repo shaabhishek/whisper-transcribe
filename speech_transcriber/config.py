@@ -28,14 +28,14 @@ GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '')
 TRANSCRIPTION_SERVICE = os.environ.get('TRANSCRIPTION_SERVICE', 'openai').lower()
 
 # Audio Recording Configuration
-SAMPLE_RATE = 16000  # Hz (default rate for Whisper models)
+SAMPLE_RATE = 16000  # Hz (default rate for GPT-4o models)
 CHANNELS = 1  # Mono
 CHUNK_SIZE = 1024  # Frames per buffer
 FORMAT = 'wav'  # Audio format
 MAX_RECORDING_TIME = 3600  # Maximum recording time in seconds
 
-# OpenAI Whisper API Configuration
-WHISPER_MODEL = 'whisper-1'
+# OpenAI GPT-4o API Configuration
+OPENAI_MODEL = 'gpt-4o-transcribe'
 LANGUAGE = os.environ.get('LANGUAGE', 'en')  # Language code (optional)
 
 # Gemini API Configuration

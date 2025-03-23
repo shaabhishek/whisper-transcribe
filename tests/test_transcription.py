@@ -22,7 +22,7 @@ class TestTranscription(unittest.TestCase):
     self.config.transcription_service = 'openai'
     self.config.openai_api_key = 'test_openai_key'
     self.config.gemini_api_key = 'test_gemini_key'
-    self.config.whisper_model = 'whisper-1'
+    self.config.openai_model = 'gpt-4o-transcribe'
     self.config.gemini_model = 'gemini-pro-vision'
     self.config.language = 'en'
 

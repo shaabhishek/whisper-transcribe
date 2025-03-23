@@ -205,7 +205,7 @@ def main() -> None:
   if args.list_services:
     print('Available transcription services:')
     print(
-      '  - openai: OpenAI Whisper API (requires OPENAI_API_KEY environment variable)'
+      '  - openai: OpenAI GPT-4o API (requires OPENAI_API_KEY environment variable)'
     )
     print(
       '  - gemini: Google Gemini API (requires GEMINI_API_KEY environment variable)'
