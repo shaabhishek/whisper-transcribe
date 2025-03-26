@@ -117,9 +117,9 @@ You can set up API keys in several ways. The application supports both OpenAI an
    speech-transcriber --help
    ```
 
-3. Double-press either the left or right Alt key to start recording.
+3. Double-press the Ctrl key to start recording.
 4. Speak clearly into your microphone
-5. Double-press either Alt key again to stop recording and start transcription
+5. Double-press the Ctrl key again to stop recording and start transcription
 6. The transcribed text will be automatically pasted into the active text field
 
 ## 🔒 macOS Permissions

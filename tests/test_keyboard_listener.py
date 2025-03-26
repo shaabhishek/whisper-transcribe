@@ -1,230 +1,220 @@
 """Tests for the keyboard listener module."""
 
+import time
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
+from unittest.mock import patch
 
 from pynput.keyboard import Key
+from pynput.keyboard import KeyCode
 
 from speech_transcriber.keyboard_listener import KeyboardListener
 
 
 class TestKeyboardListener(unittest.TestCase):
-    """Test cases for the keyboard listener module."""
+  """Test cases for the keyboard listener module."""
 
-    def setUp(self):
-        """Set up test fixtures."""
-        # Create mock callback functions
-        self.mock_activate = MagicMock()
-        self.mock_deactivate = MagicMock()
+  def setUp(self):
+    """Set up test fixtures."""
+    # Create mock callback functions
+    self.mock_activate = MagicMock()
+    self.mock_deactivate = MagicMock()
 
-        # Create a keyboard listener
-        self.listener = KeyboardListener(
-            on_activate=self.mock_activate,
-            on_deactivate=self.mock_deactivate,
-        )
+    # Create a keyboard listener
+    self.listener = KeyboardListener(
+      on_activate=self.mock_activate,
+      on_deactivate=self.mock_deactivate,
+    )
 
-        # Reset mock call counts
-        self.mock_activate.reset_mock()
-        self.mock_deactivate.reset_mock()
+    # Reset mock call counts
+    self.mock_activate.reset_mock()
+    self.mock_deactivate.reset_mock()
 
-    def tearDown(self):
-        """Clean up after tests."""
-        # Stop the listener if it's running
-        if self.listener.listener is not None:
-            self.listener.stop()
+    # Set a known interval for testing
+    self.listener.DOUBLE_PRESS_INTERVAL = 0.1
 
-    def test_start(self):
-        """Test starting the keyboard listener."""
-        with patch(
-            "speech_transcriber.keyboard_listener.Listener"
-        ) as mock_listener_class:
-            # Create a mock listener instance
-            mock_listener_instance = MagicMock()
-            mock_listener_class.return_value = mock_listener_instance
+  def tearDown(self):
+    """Clean up after tests."""
+    # Stop the listener if it's running
+    if self.listener.listener is not None:
+      self.listener.stop()
 
-            # Start the listener
-            self.listener.start()
+  def test_start(self):
+    """Test starting the keyboard listener."""
+    with patch('speech_transcriber.keyboard_listener.Listener') as mock_listener_class:
+      # Create a mock listener instance
+      mock_listener_instance = MagicMock()
+      mock_listener_class.return_value = mock_listener_instance
 
-            # Verify that the Listener was created with the correct callbacks
-            mock_listener_class.assert_called_once()
-            kwargs = mock_listener_class.call_args[1]
-            self.assertEqual(kwargs["on_press"], self.listener._on_press)
-            self.assertEqual(kwargs["on_release"], self.listener._on_release)
+      # Start the listener
+      self.listener.start()
 
-            # Verify that the listener was started
-            mock_listener_instance.start.assert_called_once()
+      # Verify that the Listener was created with the correct callbacks
+      mock_listener_class.assert_called_once()
+      kwargs = mock_listener_class.call_args[1]
+      self.assertEqual(kwargs['on_press'], self.listener._on_press)
+      self.assertEqual(kwargs['on_release'], self.listener._on_release)
 
-            # Starting again should not create a new listener
-            self.listener.start()
-            mock_listener_class.assert_called_once()
+      # Verify that the listener was started
+      mock_listener_instance.start.assert_called_once()
 
-    def test_stop(self):
-        """Test stopping the keyboard listener."""
-        # Create a mock listener
-        mock_listener = MagicMock()
-        self.listener.listener = mock_listener
+      # Starting again should not create a new listener
+      self.listener.start()
+      mock_listener_class.assert_called_once()
 
-        # Stop the listener
-        self.listener.stop()
+  def test_stop(self):
+    """Test stopping the keyboard listener."""
+    # Create a mock pynput listener
+    mock_pynput_listener = MagicMock()
+    self.listener.listener = mock_pynput_listener
 
-        # Verify that the listener was stopped
-        mock_listener.stop.assert_called_once()
-        self.assertIsNone(self.listener.listener)
-        self.assertFalse(self.listener.is_recording)
-        self.assertIsNone(self.listener.last_alt_press_time)
-        self.assertIsNone(self.listener.last_alt_key)
+    # Simulate some state
+    self.listener.is_recording = True
+    self.listener.last_ctrl_press_time = time.time()
+    self.listener.last_ctrl_key = Key.ctrl_l
+    self.listener.current_keys.add(Key.ctrl_l)
 
-        # Stopping again should not cause an error
-        self.listener.stop()
+    # Stop the listener
+    self.listener.stop()
 
-    def test_is_alt_key(self):
-        """Test the _is_alt_key method."""
-        # Test with different Alt keys
-        self.assertTrue(self.listener._is_alt_key(Key.alt))
-        self.assertTrue(self.listener._is_alt_key(Key.alt_l))
-        self.assertTrue(self.listener._is_alt_key(Key.alt_r))
+    # Verify that the pynput listener was stopped
+    mock_pynput_listener.stop.assert_called_once()
+    self.assertIsNone(self.listener.listener)
+    self.assertFalse(self.listener.is_recording)
+    # Verify Ctrl state is reset
+    self.assertIsNone(self.listener.last_ctrl_press_time)
+    self.assertIsNone(self.listener.last_ctrl_key)
+    self.assertEqual(self.listener.current_keys, set())  # Check current_keys is cleared
 
-        # Test with non-Alt keys
-        self.assertFalse(self.listener._is_alt_key(Key.ctrl))
-        self.assertFalse(self.listener._is_alt_key(Key.shift))
+    # Stopping again should not cause an error
+    self.listener.stop()
 
-    def test_on_press_double_alt_activate(self):
-        """Test double Alt key press for activation."""
-        # Mock the time to control the interval between presses
-        with patch("time.time") as mock_time:
-            # Set up time values for the first and second press
-            mock_time.side_effect = [
-                1.0,
-                1.2,
-            ]  # 0.2 seconds between presses (within threshold)
+  def test_is_ctrl_key(self):
+    """Test the _is_ctrl_key method."""
+    # Test with different Ctrl keys
+    self.assertTrue(self.listener._is_ctrl_key(Key.ctrl))
+    self.assertTrue(self.listener._is_ctrl_key(Key.ctrl_l))
+    self.assertTrue(self.listener._is_ctrl_key(Key.ctrl_r))
 
-            # First Alt press
-            self.listener._on_press(Key.alt)
+    # Test with non-Ctrl keys
+    self.assertFalse(self.listener._is_ctrl_key(Key.alt))
+    self.assertFalse(self.listener._is_ctrl_key(Key.shift))
+    self.assertFalse(self.listener._is_ctrl_key(Key.cmd))
+    self.assertFalse(self.listener._is_ctrl_key(KeyCode.from_char('a')))
 
-            # Verify that tracking started but no activation yet
-            self.assertEqual(self.listener.last_alt_press_time, 1.0)
-            self.assertEqual(self.listener.last_alt_key, Key.alt)
-            self.mock_activate.assert_not_called()
+  @patch('time.time')
+  def test_double_ctrl_activate(self, mock_time):
+    """Test activating recording with double Ctrl press."""
+    mock_time.side_effect = [100.0, 100.05]  # Simulate two presses 0.05s apart
 
-            # Second Alt press (within threshold)
-            self.listener._on_press(Key.alt)
+    # Press Ctrl the first time
+    self.listener._on_press(Key.ctrl_l)
+    self.mock_activate.assert_not_called()
+    self.assertFalse(self.listener.is_recording)
+    self.assertEqual(self.listener.last_ctrl_press_time, 100.0)
+    self.assertEqual(self.listener.last_ctrl_key, Key.ctrl_l)
 
-            # Verify that on_activate was called
-            self.mock_activate.assert_called_once()
-            self.assertTrue(self.listener.is_recording)
+    # Press Ctrl the second time (within interval)
+    self.listener._on_press(Key.ctrl_r)  # Use different Ctrl key
+    self.mock_activate.assert_called_once()
+    self.assertTrue(self.listener.is_recording)
+    # Verify state is reset after successful double press
+    self.assertIsNone(self.listener.last_ctrl_press_time)
+    self.assertIsNone(self.listener.last_ctrl_key)
 
-            # Verify that tracking state was reset
-            self.assertIsNone(self.listener.last_alt_press_time)
-            self.assertIsNone(self.listener.last_alt_key)
+  @patch('time.time')
+  def test_double_ctrl_deactivate(self, mock_time):
+    """Test deactivating recording with double Ctrl press."""
+    mock_time.side_effect = [100.0, 100.05, 101.0, 101.05]
 
-    def test_on_press_double_alt_deactivate(self):
-        """Test double Alt key press for deactivation."""
-        # Set the listener to recording state
-        self.listener.is_recording = True
+    # First double press (activate)
+    self.listener._on_press(Key.ctrl_l)
+    self.listener._on_press(Key.ctrl_l)
+    self.mock_activate.assert_called_once()
+    self.assertTrue(self.listener.is_recording)
+    self.mock_deactivate.assert_not_called()
 
-        # Mock the time to control the interval between presses
-        with patch("time.time") as mock_time:
-            # Set up time values for the first and second press
-            mock_time.side_effect = [
-                2.0,
-                2.3,
-            ]  # 0.3 seconds between presses (within threshold)
+    # Second double press (deactivate)
+    self.listener._on_press(Key.ctrl_r)
+    self.listener._on_press(Key.ctrl_r)
+    self.mock_activate.assert_called_once()  # Still called only once
+    self.mock_deactivate.assert_called_once()
+    self.assertFalse(self.listener.is_recording)
+    # Verify state is reset
+    self.assertIsNone(self.listener.last_ctrl_press_time)
+    self.assertIsNone(self.listener.last_ctrl_key)
 
-            # First Alt press
-            self.listener._on_press(Key.alt)
+  @patch('time.time')
+  def test_single_ctrl_press_no_trigger(self, mock_time):
+    """Test that a single Ctrl press does not trigger activation."""
+    mock_time.return_value = 100.0
+    self.listener._on_press(Key.ctrl_l)
+    self.mock_activate.assert_not_called()
+    self.mock_deactivate.assert_not_called()
+    self.assertFalse(self.listener.is_recording)
+    self.assertEqual(
+      self.listener.last_ctrl_press_time, 100.0
+    )  # State is set for next potential press
 
-            # Verify that tracking started but no deactivation yet
-            self.assertEqual(self.listener.last_alt_press_time, 2.0)
-            self.assertEqual(self.listener.last_alt_key, Key.alt)
-            self.mock_deactivate.assert_not_called()
+  @patch('time.time')
+  def test_ctrl_press_too_slow_no_trigger(self, mock_time):
+    """Test that two Ctrl presses too far apart do not trigger."""
+    mock_time.side_effect = [100.0, 100.2]  # 0.2s apart > DOUBLE_PRESS_INTERVAL
 
-            # Second Alt press (within threshold)
-            self.listener._on_press(Key.alt)
+    # Press Ctrl the first time
+    self.listener._on_press(Key.ctrl_l)
+    self.mock_activate.assert_not_called()
+    self.assertEqual(self.listener.last_ctrl_press_time, 100.0)
 
-            # Verify that on_deactivate was called
-            self.mock_deactivate.assert_called_once()
-            self.assertFalse(self.listener.is_recording)
+    # Press Ctrl the second time (outside interval)
+    self.listener._on_press(Key.ctrl_l)
+    self.mock_activate.assert_not_called()
+    self.mock_deactivate.assert_not_called()
+    self.assertFalse(self.listener.is_recording)
+    # State should now track the second press
+    self.assertEqual(self.listener.last_ctrl_press_time, 100.2)
+    self.assertEqual(self.listener.last_ctrl_key, Key.ctrl_l)
 
-            # Verify that tracking state was reset
-            self.assertIsNone(self.listener.last_alt_press_time)
-            self.assertIsNone(self.listener.last_alt_key)
+  @patch('time.time')
+  def test_ctrl_then_other_key_no_trigger(self, mock_time):
+    """Test that Ctrl followed by a non-Ctrl key resets and does not trigger."""
+    mock_time.side_effect = [100.0, 100.1]  # Time for first Ctrl, time for second Ctrl
 
-    def test_on_press_slow_alt_presses(self):
-        """Test Alt key presses that are too slow to be a double-press."""
-        # Mock the time to control the interval between presses
-        with patch("time.time") as mock_time:
-            # Set up time values for the first and second press
-            mock_time.side_effect = [
-                3.0,
-                4.0,
-            ]  # 1.0 seconds between presses (exceeds threshold)
+    # Press Ctrl
+    self.listener._on_press(Key.ctrl_l)
+    self.assertEqual(self.listener.last_ctrl_press_time, 100.0)
+    self.mock_activate.assert_not_called()
 
-            # First Alt press
-            self.listener._on_press(Key.alt)
+    # Press 'a' shortly after (time.time() is NOT called here in the code)
+    self.listener._on_press(KeyCode.from_char('a'))
+    # Double-press state should be reset
+    self.assertIsNone(self.listener.last_ctrl_press_time)
+    self.assertIsNone(self.listener.last_ctrl_key)
+    self.mock_activate.assert_not_called()
+    self.mock_deactivate.assert_not_called()
 
-            # Verify that tracking started
-            self.assertEqual(self.listener.last_alt_press_time, 3.0)
-            self.assertEqual(self.listener.last_alt_key, Key.alt)
+    # Press Ctrl again - should only register as the first press now
+    self.listener._on_press(Key.ctrl_l)
+    # This call to time.time() gets the second value from side_effect
+    self.assertEqual(self.listener.last_ctrl_press_time, 100.1)
+    self.mock_activate.assert_not_called()
 
-            # Second Alt press (too slow)
-            self.listener._on_press(Key.alt)
+  def test_release_key(self):
+    """Test releasing a key removes it from current_keys."""
+    self.listener._on_press(Key.ctrl_l)
+    self.listener._on_press(KeyCode.from_char('a'))
+    self.assertEqual(self.listener.current_keys, {Key.ctrl_l, KeyCode.from_char('a')})
 
-            # Verify that no activation occurred
-            self.mock_activate.assert_not_called()
-            self.assertFalse(self.listener.is_recording)
+    self.listener._on_release(Key.ctrl_l)
+    self.assertEqual(self.listener.current_keys, {KeyCode.from_char('a')})
 
-            # Verify that tracking was reset with the new press
-            self.assertEqual(self.listener.last_alt_press_time, 4.0)
-            self.assertEqual(self.listener.last_alt_key, Key.alt)
+    # Releasing a key not pressed should not error
+    self.listener._on_release(Key.shift)
+    self.assertEqual(self.listener.current_keys, {KeyCode.from_char('a')})
 
-    def test_on_press_mixed_alt_keys(self):
-        """Test pressing different Alt keys (left then right)."""
-        # Mock the time to control the interval between presses
-        with patch("time.time") as mock_time:
-            # Set up time values for the first and second press
-            mock_time.side_effect = [
-                5.0,
-                5.2,
-            ]  # 0.2 seconds between presses (within threshold)
-
-            # First Alt press (left Alt)
-            self.listener._on_press(Key.alt_l)
-
-            # Verify that tracking started
-            self.assertEqual(self.listener.last_alt_press_time, 5.0)
-            self.assertEqual(self.listener.last_alt_key, Key.alt_l)
-
-            # Second Alt press (right Alt)
-            self.listener._on_press(Key.alt_r)
-
-            # Verify that activation occurred even with different Alt keys
-            self.mock_activate.assert_called_once()
-            self.assertTrue(self.listener.is_recording)
-
-    def test_on_release_functionality(self):
-        """Test that key release functionality works correctly."""
-        # Add a key to current_keys
-        self.listener.current_keys.add(Key.alt)
-
-        # Release the key
-        self.listener._on_release(Key.alt)
-
-        # Verify that the key was removed from current_keys
-        self.assertNotIn(Key.alt, self.listener.current_keys)
-
-        # Verify that no callbacks were called
-        self.mock_activate.assert_not_called()
-        self.mock_deactivate.assert_not_called()
-
-    def test_on_release_nonexistent_key(self):
-        """Test releasing a key that wasn't pressed."""
-        # Try to release a key that wasn't pressed
-        self.listener._on_release(Key.esc)
-
-        # Verify that no callbacks were called
-        self.mock_activate.assert_not_called()
-        self.mock_deactivate.assert_not_called()
+    self.listener._on_release(KeyCode.from_char('a'))
+    self.assertEqual(self.listener.current_keys, set())
 
 
-if __name__ == "__main__":
-    unittest.main()
+if __name__ == '__main__':
+  unittest.main()

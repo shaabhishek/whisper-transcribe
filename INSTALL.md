@@ -124,9 +124,9 @@ python -m speech_transcriber
 ### Using the application
 
 1. The application will run in the background, waiting for the activation keypress.
-2. **Double-press** either the left or right **Alt key** to start recording.
+2. **Double-press** the **Ctrl key** to start recording.
 3. Speak clearly into your microphone.
-4. **Double-press** either **Alt key** again to stop recording and start transcription.
+4. **Double-press** the **Ctrl key** again to stop recording and start transcription.
 5. The transcribed text will be automatically copied to your clipboard.
 6. Paste the text into any text field using Cmd+V.
 7. Audio notifications will play when recording starts and stops.

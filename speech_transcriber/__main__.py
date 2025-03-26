@@ -61,8 +61,8 @@ class SpeechTranscriber:
 
     print('Speech Transcriber is running.')
     print(f'Using {service.upper()} as the transcription service.')
-    print('Double-press either the left or right Alt key to start recording.')
-    print('Double-press either Alt key again to stop recording and transcribe.')
+    print('Double-press either the left or right Ctrl key to start recording.')
+    print('Double-press either Ctrl key again to stop recording and transcribe.')
     print('Press Ctrl+C to exit.')
 
     # Keep the main thread alive
